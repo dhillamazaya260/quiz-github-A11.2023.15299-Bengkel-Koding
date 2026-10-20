@@ -8,4 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 class DetailPeriksa extends Model
 {
     use HasFactory;
+
+    // Nama tabel di migration adalah "detail_periksa" (bukan "detail_periksas")
+    protected $table = 'detail_periksa';
+
+    protected $fillable = ['id_periksa', 'id_obat'];
+
+    public function periksa()
+    {
+        return $this->belongsTo(Periksa::class, 'id_periksa');
+    }
+
+    public function obat()
+    {
+        return $this->belongsTo(Obat::class, 'id_obat');
+    }
 }

@@ -37,10 +37,10 @@
 
             <div class="main-scroll">
 
-                @if (session('success'))
+                @if (session('success', session('message')))
                     <div class="alert alert-success mb-4 rounded-xl shadow-sm">
                         <i class="fas fa-check-circle"></i>
-                        <span>{{ session('success') }}</span>
+                        <span>{{ session('success', session('message')) }}</span>
                     </div>
                 @endif
 

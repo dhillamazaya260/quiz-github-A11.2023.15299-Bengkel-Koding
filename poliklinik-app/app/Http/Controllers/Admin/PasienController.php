@@ -11,7 +11,7 @@ class PasienController extends Controller
 {
     public function index()
     {
-        $pasiens = User::where('role', 'pasien')->with('poli')->get();
+        $pasiens = User::where('role', 'pasien')->get();
         return view('admin.pasien.index', compact('pasiens'));
     }
 
@@ -36,12 +36,13 @@ class PasienController extends Controller
             'alamat' => $request->alamat,
             'no_ktp' => $request->no_ktp,
             'no_hp' => $request->no_hp,
+            'no_rm' => $this->generateNoRm(),
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'pasien',
         ]);
 
-        return redirect()->route('pasien.index')->with('message', 'Data Pasien berhasil di Tambah>')->with('type', 'success');
+        return redirect()->route('pasien.index')->with('message', 'Data Pasien berhasil ditambah')->with('type', 'success');
     }
 
     public function edit(User $pasien)
@@ -57,7 +58,8 @@ class PasienController extends Controller
             'no_ktp' => 'required|string|max:16|unique:users,no_ktp,' . $pasien->id,
             'no_hp' => 'required|string|max:15',
             'email' => 'required|string|email|unique:users,email,' . $pasien->id,
-            'password' => 'required|string|min:6',
+            // Kosong = password tidak diubah (sama seperti form edit dokter)
+            'password' => 'nullable|string|min:6',
         ]);
 
         $updateData = [
@@ -69,14 +71,14 @@ class PasienController extends Controller
         ];
 
         if ($request->filled('password')) {
-            $pasien->password = Hash::make($request->password);
+            $updateData['password'] = Hash::make($request->password);
         }
 
         $pasien->update($updateData);
 
         return redirect()
             ->route('pasien.index')
-            ->with('message', 'Data Pasien berhasil di Ubah>')
+            ->with('message', 'Data Pasien berhasil diubah')
             ->with('type', 'success');
     }
 
@@ -87,5 +89,19 @@ class PasienController extends Controller
             ->route('pasien.index')
             ->with('message', 'Data Pasien berhasil dihapus')
             ->with('type', 'success');
+    }
+
+    /** Format no_rm: YYYYMM-XXX (XXX = nomor urut pasien pada bulan tersebut), sama dengan form register. */
+    private function generateNoRm(): string
+    {
+        $prefix = date('Ym');
+        $lastNoRm = User::where('role', 'pasien')
+            ->where('no_rm', 'like', $prefix . '-%')
+            ->orderBy('no_rm', 'desc')
+            ->value('no_rm');
+
+        $urut = $lastNoRm ? ((int) explode('-', $lastNoRm)[1]) + 1 : 1;
+
+        return $prefix . '-' . str_pad((string) $urut, 3, '0', STR_PAD_LEFT);
     }
 }

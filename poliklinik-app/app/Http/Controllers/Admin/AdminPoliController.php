@@ -22,7 +22,7 @@ class AdminPoliController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_poli' => 'required',
+            'nama_poli' => 'required|string|max:25',
             'keterangan' => 'nullable',
         ]);
 
@@ -39,7 +39,7 @@ class AdminPoliController extends Controller
     public function update(Request $request, string $id)
     {
         $validated = $request->validate([
-            'nama_poli' => 'required',
+            'nama_poli' => 'required|string|max:25',
             'keterangan' => 'nullable',
         ]);
 
