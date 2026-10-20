@@ -14,4 +14,10 @@ class JadwalPeriksa extends Model
     {
         return $this->belongsTo(User::class, 'id_dokter');
     }
+
+    // Satu jadwal punya banyak pendaftaran poli (dipakai untuk antrian)
+    public function daftarPolis()
+    {
+        return $this->hasMany(DaftarPoli::class, 'id_jadwal');
+    }
 }
