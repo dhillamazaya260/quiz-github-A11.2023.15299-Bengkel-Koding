@@ -54,7 +54,8 @@ Route::middleware(['auth', 'role:dokter'])->prefix('dokter')->group(function () 
 
 // Pasien Routes
 Route::middleware(['auth', 'role:pasien'])->prefix('pasien')->group(function () {
-    Route::get('/dashboard', fn () => view('admin.pasien.dashboard'))->name('pasien.dashboard');
+    Route::get('/dashboard', [PasienPoliController::class, 'dashboard'])->name('pasien.dashboard');
+    Route::get('/antrian-status', [PasienPoliController::class, 'antrianStatus'])->name('pasien.antrian-status');
 
     Route::get('/daftar', [PasienPoliController::class, 'get'])->name('pasien.daftar');
     Route::post('/daftar', [PasienPoliController::class, 'submit'])->name('pasien.daftar.submit');
