@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Poli extends Model
 {
-    use HasFactory;
+    // Nama tabel di migration adalah "poli" (bukan "polis")
+    protected $table = 'poli';
+
+    protected $fillable = ['nama_poli', 'keterangan'];
 }
