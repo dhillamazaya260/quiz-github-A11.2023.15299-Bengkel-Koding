@@ -159,12 +159,12 @@
                     $selisihBanner = $bannerData['antrian_saya'] - $bannerData['nomor_dilayani'];
                 @endphp
                 <div id="bannerStatusMsg" class="mt-4 flex items-center gap-2 text-xs">
-                    @if($bannerData['nomor_dilayani'] == 0)
+                    @if($selisihBanner <= 0)
+                        <i class="fas fa-bell text-green-400 animate-bounce"></i>
+                        <span class="text-green-300"><strong>Giliran Anda sudah tiba!</strong> Anda sedang dilayani dokter.</span>
+                    @elseif($bannerData['nomor_dilayani'] == 0)
                         <i class="fas fa-hourglass-start text-yellow-400"></i>
                         <span class="text-yellow-300">Antrian belum dimulai, harap bersiap di lokasi.</span>
-                    @elseif($selisihBanner <= 0)
-                        <i class="fas fa-check-circle text-green-400"></i>
-                        <span class="text-green-300">Giliran Anda sudah tiba atau sedang diperiksa!</span>
                     @elseif($selisihBanner <= 3)
                         <i class="fas fa-bell text-amber-400 animate-bounce"></i>
                         <span class="text-amber-300">Bersiap! Giliran Anda <strong>{{ $selisihBanner }}</strong> nomor lagi.</span>
@@ -513,6 +513,8 @@
         const myJadwalId  = bannerEl ? Number(bannerEl.dataset.jadwalId) : null;
         const antrianSaya = bannerEl ? Number(bannerEl.dataset.antrianSaya) : null;
         let selesai       = false; // true setelah pasien selesai diperiksa
+        const judulAsli   = document.title;
+        let sudahDiberitahu = false; // notifikasi "giliran tiba" hanya sekali
 
         /** Pad angka jadi 3 digit, 0 → '—' */
         function pad(n) {
@@ -522,13 +524,14 @@
         /** HTML pesan status banner */
         function statusHTML(nd, sa) {
             const selisih = sa - nd;
+            // Dokter sudah memanggil nomor Anda -> sedang dilayani
+            if (selisih <= 0) {
+                return '<i class="fas fa-bell animate-bounce" style="color:#4ade80;"></i>'
+                     + '<span style="color:#86efac;"><strong>Giliran Anda sudah tiba!</strong> Anda sedang dilayani dokter.</span>';
+            }
             if (!nd || nd === 0) {
                 return '<i class="fas fa-hourglass-start" style="color:#facc15;"></i>'
                      + '<span style="color:#fde047;">Antrian belum dimulai, harap bersiap di lokasi.</span>';
-            }
-            if (selisih <= 0) {
-                return '<i class="fas fa-check-circle" style="color:#4ade80;"></i>'
-                     + '<span style="color:#86efac;">Giliran Anda sudah tiba atau sedang diperiksa!</span>';
             }
             if (selisih <= 3) {
                 return '<i class="fas fa-bell" style="color:#fb923c;"></i>'
@@ -551,11 +554,19 @@
                     + '<span style="color:#86efac;">Pemeriksaan Anda sudah selesai. '
                     + '<a href="{{ route('pasien.riwayat') }}" style="text-decoration:underline;font-weight:700;">Lihat riwayat &amp; pembayaran</a></span>';
                 selesai = true;
+                document.title = judulAsli;
                 return;
             }
 
             if (ndEl)  ndEl.textContent = pad(banner.nomor_dilayani);
             msgEl.innerHTML = statusHTML(banner.nomor_dilayani, banner.antrian_saya);
+
+            // Giliran tiba: ubah judul tab (terlihat walau tab di latar belakang) + getar di HP
+            if (banner.antrian_saya - banner.nomor_dilayani <= 0 && !sudahDiberitahu) {
+                sudahDiberitahu = true;
+                document.title = '🔔 Giliran Anda tiba! - ' + judulAsli;
+                if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+            }
         }
 
         /** Update kolom "Sedang Dilayani" di tabel */

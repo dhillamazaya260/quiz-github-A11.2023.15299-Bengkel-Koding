@@ -9,7 +9,34 @@ class DaftarPoli extends Model
 {
     protected $table = 'daftar_poli';
 
-    protected $fillable = ['id_pasien', 'id_jadwal', 'keluhan', 'no_antrian'];
+    protected $fillable = ['id_pasien', 'id_jadwal', 'keluhan', 'no_antrian', 'dilayani_pada'];
+
+    protected $casts = [
+        'dilayani_pada' => 'datetime',
+    ];
+
+    /**
+     * Nomor yang "Sedang Dilayani" pada sebuah jadwal.
+     *  1. Jika dokter sudah menekan tombol "Periksa" pada seorang pasien yang belum
+     *     selesai diperiksa -> nomor pasien itulah yang sedang dilayani.
+     *  2. Jika tidak ada (dokter belum memanggil siapa pun / baru selesai) ->
+     *     nomor terakhir yang sudah selesai diperiksa. 0 jika belum ada.
+     */
+    public static function nomorDilayani(int $idJadwal): int
+    {
+        $sedangDiperiksa = static::where('id_jadwal', $idJadwal)
+            ->whereNotNull('dilayani_pada')
+            ->whereDoesntHave('periksa')
+            ->max('no_antrian');
+
+        if ($sedangDiperiksa !== null) {
+            return (int) $sedangDiperiksa;
+        }
+
+        return (int) static::where('id_jadwal', $idJadwal)
+            ->whereHas('periksa')
+            ->max('no_antrian');
+    }
 
     public function pasien()
     {

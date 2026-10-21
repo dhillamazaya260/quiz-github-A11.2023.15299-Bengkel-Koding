@@ -35,9 +35,7 @@ class PoliController extends Controller
             $jadwal = $antrianAktif->jadwalPeriksa;
 
             // Nomor sedang dilayani = max no_antrian di jadwal ini yang sudah periksa
-            $nomorDilayani = DaftarPoli::where('id_jadwal', $jadwal->id)
-                ->whereHas('periksa')
-                ->max('no_antrian') ?? 0;
+            $nomorDilayani = DaftarPoli::nomorDilayani($jadwal->id);
 
             $bannerData = [
                 'id_daftar'      => $antrianAktif->id,
@@ -61,12 +59,9 @@ class PoliController extends Controller
             ->get()
             ->map(function ($jadwal) use ($hariIni) {
                 // Hanya hitung nomor_dilayani untuk jadwal hari ini
-                $nomorDilayani = 0;
-                if ($jadwal->hari === $hariIni) {
-                    $nomorDilayani = $jadwal->daftarPolis
-                        ->filter(fn($d) => $d->periksa !== null)
-                        ->max('no_antrian') ?? 0;
-                }
+                $nomorDilayani = $jadwal->hari === $hariIni
+                    ? DaftarPoli::nomorDilayani($jadwal->id)
+                    : 0;
 
                 return [
                     'id'             => $jadwal->id,
@@ -97,9 +92,7 @@ class PoliController extends Controller
             ->where('hari', $hariIni)
             ->get()
             ->map(function ($jadwal) use ($idPasien) {
-                $nomorDilayani = $jadwal->daftarPolis
-                    ->filter(fn($d) => $d->periksa !== null)
-                    ->max('no_antrian') ?? 0;
+                $nomorDilayani = DaftarPoli::nomorDilayani($jadwal->id);
 
                 return [
                     'id_jadwal'      => $jadwal->id,
@@ -116,9 +109,7 @@ class PoliController extends Controller
         $bannerUpdate = null;
         if ($antrianAktif) {
             $jadwalId      = $antrianAktif->jadwalPeriksa->id;
-            $nomorDilayani = DaftarPoli::where('id_jadwal', $jadwalId)
-                ->whereHas('periksa')
-                ->max('no_antrian') ?? 0;
+            $nomorDilayani = DaftarPoli::nomorDilayani($jadwalId);
 
             $bannerUpdate = [
                 'id_jadwal'      => $jadwalId,
