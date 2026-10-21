@@ -1,6 +1,39 @@
 <x-layouts.app title="Dashboard Pasien">
 
     {{-- ============================================================
+         ALERT BERHASIL MEMBUAT ANTRIAN (muncul sekali setelah daftar poli)
+    ============================================================ --}}
+    @if (session('antrian_baru'))
+        @php $ab = session('antrian_baru'); @endphp
+        <dialog id="modalAntrianBaru" class="modal modal-open">
+            <div class="modal-box rounded-2xl text-center max-w-sm">
+                <div class="mx-auto mb-3 w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check text-green-600 text-3xl"></i>
+                </div>
+                <h3 class="font-bold text-lg text-slate-800">Antrian berhasil dibuat!</h3>
+                <p class="text-xs text-slate-500 mt-1">Nomor antrian Anda</p>
+                <p class="font-black text-indigo-700 my-1" style="font-size:3.5rem;line-height:1;letter-spacing:-2px;">
+                    {{ str_pad($ab['nomor'], 3, '0', STR_PAD_LEFT) }}
+                </p>
+                <div class="text-sm text-slate-600 mt-3 space-y-0.5">
+                    <p><span class="font-semibold">{{ $ab['poli'] }}</span> &middot; {{ $ab['dokter'] }}</p>
+                    <p>{{ $ab['hari'] }}, {{ $ab['jam'] }}</p>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">
+                    Anda akan mendapat notifikasi saat giliran Anda tiba.
+                </p>
+                <div class="modal-action justify-center">
+                    <button type="button" class="btn btn-primary rounded-xl px-8"
+                            onclick="document.getElementById('modalAntrianBaru').remove()">
+                        Mengerti
+                    </button>
+                </div>
+            </div>
+            <div class="modal-backdrop" onclick="document.getElementById('modalAntrianBaru').remove()"></div>
+        </dialog>
+    @endif
+
+    {{-- ============================================================
          HERO WELCOME STRIP
     ============================================================ --}}
     <div class="relative overflow-hidden rounded-2xl mb-6"
@@ -159,12 +192,15 @@
                     $selisihBanner = $bannerData['antrian_saya'] - $bannerData['nomor_dilayani'];
                 @endphp
                 <div id="bannerStatusMsg" class="mt-4 flex items-center gap-2 text-xs">
-                    @if($selisihBanner <= 0)
-                        <i class="fas fa-bell text-green-400 animate-bounce"></i>
-                        <span class="text-green-300"><strong>Giliran Anda sudah tiba!</strong> Anda sedang dilayani dokter.</span>
-                    @elseif($bannerData['nomor_dilayani'] == 0)
+                    @if($bannerData['nomor_dilayani'] == 0)
                         <i class="fas fa-hourglass-start text-yellow-400"></i>
                         <span class="text-yellow-300">Antrian belum dimulai, harap bersiap di lokasi.</span>
+                    @elseif($selisihBanner <= 0)
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span class="text-green-300">Giliran Anda sudah tiba atau sedang diperiksa!</span>
+                    @elseif($selisihBanner == 1)
+                        <i class="fas fa-bell text-green-400 animate-bounce"></i>
+                        <span class="text-green-300"><strong>Giliran Anda sudah tiba!</strong> Silakan menuju ruang periksa.</span>
                     @elseif($selisihBanner <= 3)
                         <i class="fas fa-bell text-amber-400 animate-bounce"></i>
                         <span class="text-amber-300">Bersiap! Giliran Anda <strong>{{ $selisihBanner }}</strong> nomor lagi.</span>
@@ -513,8 +549,6 @@
         const myJadwalId  = bannerEl ? Number(bannerEl.dataset.jadwalId) : null;
         const antrianSaya = bannerEl ? Number(bannerEl.dataset.antrianSaya) : null;
         let selesai       = false; // true setelah pasien selesai diperiksa
-        const judulAsli   = document.title;
-        let sudahDiberitahu = false; // notifikasi "giliran tiba" hanya sekali
 
         /** Pad angka jadi 3 digit, 0 → '—' */
         function pad(n) {
@@ -524,14 +558,17 @@
         /** HTML pesan status banner */
         function statusHTML(nd, sa) {
             const selisih = sa - nd;
-            // Dokter sudah memanggil nomor Anda -> sedang dilayani
-            if (selisih <= 0) {
-                return '<i class="fas fa-bell animate-bounce" style="color:#4ade80;"></i>'
-                     + '<span style="color:#86efac;"><strong>Giliran Anda sudah tiba!</strong> Anda sedang dilayani dokter.</span>';
-            }
             if (!nd || nd === 0) {
                 return '<i class="fas fa-hourglass-start" style="color:#facc15;"></i>'
                      + '<span style="color:#fde047;">Antrian belum dimulai, harap bersiap di lokasi.</span>';
+            }
+            if (selisih <= 0) {
+                return '<i class="fas fa-check-circle" style="color:#4ade80;"></i>'
+                     + '<span style="color:#86efac;">Giliran Anda sudah tiba atau sedang diperiksa!</span>';
+            }
+            if (selisih === 1) {
+                return '<i class="fas fa-bell animate-bounce" style="color:#4ade80;"></i>'
+                     + '<span style="color:#86efac;"><strong>Giliran Anda sudah tiba!</strong> Silakan menuju ruang periksa.</span>';
             }
             if (selisih <= 3) {
                 return '<i class="fas fa-bell" style="color:#fb923c;"></i>'
@@ -554,19 +591,11 @@
                     + '<span style="color:#86efac;">Pemeriksaan Anda sudah selesai. '
                     + '<a href="{{ route('pasien.riwayat') }}" style="text-decoration:underline;font-weight:700;">Lihat riwayat &amp; pembayaran</a></span>';
                 selesai = true;
-                document.title = judulAsli;
                 return;
             }
 
             if (ndEl)  ndEl.textContent = pad(banner.nomor_dilayani);
             msgEl.innerHTML = statusHTML(banner.nomor_dilayani, banner.antrian_saya);
-
-            // Giliran tiba: ubah judul tab (terlihat walau tab di latar belakang) + getar di HP
-            if (banner.antrian_saya - banner.nomor_dilayani <= 0 && !sudahDiberitahu) {
-                sudahDiberitahu = true;
-                document.title = '🔔 Giliran Anda tiba! - ' + judulAsli;
-                if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
-            }
         }
 
         /** Update kolom "Sedang Dilayani" di tabel */

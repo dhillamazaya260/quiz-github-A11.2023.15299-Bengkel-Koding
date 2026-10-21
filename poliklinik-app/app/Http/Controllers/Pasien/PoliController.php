@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\DaftarPoli;
 use App\Models\JadwalPeriksa;
 use App\Models\Poli;
+use App\Notifications\AntrianBaru;
+use App\Support\Notifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +37,9 @@ class PoliController extends Controller
             $jadwal = $antrianAktif->jadwalPeriksa;
 
             // Nomor sedang dilayani = max no_antrian di jadwal ini yang sudah periksa
-            $nomorDilayani = DaftarPoli::nomorDilayani($jadwal->id);
+            $nomorDilayani = DaftarPoli::where('id_jadwal', $jadwal->id)
+                ->whereHas('periksa')
+                ->max('no_antrian') ?? 0;
 
             $bannerData = [
                 'id_daftar'      => $antrianAktif->id,
@@ -59,9 +63,12 @@ class PoliController extends Controller
             ->get()
             ->map(function ($jadwal) use ($hariIni) {
                 // Hanya hitung nomor_dilayani untuk jadwal hari ini
-                $nomorDilayani = $jadwal->hari === $hariIni
-                    ? DaftarPoli::nomorDilayani($jadwal->id)
-                    : 0;
+                $nomorDilayani = 0;
+                if ($jadwal->hari === $hariIni) {
+                    $nomorDilayani = $jadwal->daftarPolis
+                        ->filter(fn($d) => $d->periksa !== null)
+                        ->max('no_antrian') ?? 0;
+                }
 
                 return [
                     'id'             => $jadwal->id,
@@ -92,7 +99,9 @@ class PoliController extends Controller
             ->where('hari', $hariIni)
             ->get()
             ->map(function ($jadwal) use ($idPasien) {
-                $nomorDilayani = DaftarPoli::nomorDilayani($jadwal->id);
+                $nomorDilayani = $jadwal->daftarPolis
+                    ->filter(fn($d) => $d->periksa !== null)
+                    ->max('no_antrian') ?? 0;
 
                 return [
                     'id_jadwal'      => $jadwal->id,
@@ -109,7 +118,9 @@ class PoliController extends Controller
         $bannerUpdate = null;
         if ($antrianAktif) {
             $jadwalId      = $antrianAktif->jadwalPeriksa->id;
-            $nomorDilayani = DaftarPoli::nomorDilayani($jadwalId);
+            $nomorDilayani = DaftarPoli::where('id_jadwal', $jadwalId)
+                ->whereHas('periksa')
+                ->max('no_antrian') ?? 0;
 
             $bannerUpdate = [
                 'id_jadwal'      => $jadwalId,
@@ -163,7 +174,7 @@ class PoliController extends Controller
         ]);
 
         $idPasien = Auth::id();
-        $jadwal   = JadwalPeriksa::with('dokter')->findOrFail($data['id_jadwal']);
+        $jadwal   = JadwalPeriksa::with('dokter.poli')->findOrFail($data['id_jadwal']);
 
         // Jadwal yang dipilih harus milik dokter di poli yang dipilih
         if ((int) $jadwal->dokter?->id_poli !== (int) $data['id_poli']) {
@@ -191,23 +202,31 @@ class PoliController extends Controller
         }
 
         // Kunci baris jadwal agar dua pasien yang daftar bersamaan tidak dapat nomor antrian sama
-        $noAntrian = DB::transaction(function () use ($data, $idPasien, $jadwal) {
+        $daftar = DB::transaction(function () use ($data, $idPasien, $jadwal) {
             JadwalPeriksa::whereKey($jadwal->id)->lockForUpdate()->first();
 
             $noAntrian = ((int) DaftarPoli::where('id_jadwal', $jadwal->id)->max('no_antrian')) + 1;
 
-            DaftarPoli::create([
+            return DaftarPoli::create([
                 'id_pasien'  => $idPasien,
                 'id_jadwal'  => $jadwal->id,
                 'keluhan'    => $data['keluhan'],
                 'no_antrian' => $noAntrian,
             ]);
-
-            return $noAntrian;
         });
 
+        // Beri tahu dokter (bell + toast realtime) bahwa ada antrian baru
+        Notifier::kirim($jadwal->dokter, new AntrianBaru($daftar));
+
+        // Data untuk modal alert di dashboard pasien
         return redirect()
             ->route('pasien.dashboard')
-            ->with('success', 'Berhasil mendaftar ke poli! Nomor antrian Anda: ' . $noAntrian);
+            ->with('antrian_baru', [
+                'nomor'  => $daftar->no_antrian,
+                'poli'   => $jadwal->dokter?->poli?->nama_poli ?? '-',
+                'dokter' => $jadwal->dokter?->nama ?? '-',
+                'hari'   => $jadwal->hari,
+                'jam'    => substr($jadwal->jam_mulai, 0, 5) . '–' . substr($jadwal->jam_selesai, 0, 5),
+            ]);
     }
 }

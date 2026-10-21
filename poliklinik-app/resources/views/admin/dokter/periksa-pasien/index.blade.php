@@ -52,4 +52,15 @@
         </div>
     </div>
 
+    @push('scripts')
+        <script>
+            // Antrian baru masuk -> muat ulang tabel (setelah toast sempat terbaca)
+            document.addEventListener('notifikasi:masuk', function (e) {
+                if (e.detail && e.detail.jenis === 'antrian_baru') {
+                    setTimeout(function () { window.location.reload(); }, 2500);
+                }
+            });
+        </script>
+    @endpush
+
 </x-layouts.app>

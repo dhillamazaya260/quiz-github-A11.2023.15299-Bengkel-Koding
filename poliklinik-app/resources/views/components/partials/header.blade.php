@@ -34,28 +34,27 @@
     <div class="dropdown dropdown-end">
         <div tabindex="0" role="button" class="btn btn-square btn-ghost relative" aria-label="Notifikasi">
             <i class="fas fa-bell w-5 h-5"></i>
-            @if ($unread > 0)
-                <span class="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {{ $unread > 9 ? '9+' : $unread }}
-                </span>
-            @endif
+            <span id="notifBadge"
+                  data-count="{{ $unread }}"
+                  class="{{ $unread > 0 ? '' : 'hidden' }} absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {{ $unread > 9 ? '9+' : $unread }}
+            </span>
         </div>
 
         <div tabindex="0"
              class="dropdown-content z-50 mt-2 w-80 rounded-2xl bg-base-100 shadow-xl border border-base-300 overflow-hidden">
             <div class="px-4 py-3 border-b border-base-300 flex items-center justify-between">
                 <span class="font-bold text-slate-800 text-sm">Notifikasi</span>
-                @if ($unread > 0)
-                    <form method="POST" action="{{ route('notifikasi.baca-semua') }}">
-                        @csrf
-                        <button type="submit" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
-                            Tandai semua dibaca
-                        </button>
-                    </form>
-                @endif
+                <form id="notifBacaSemua" method="POST" action="{{ route('notifikasi.baca-semua') }}"
+                      class="{{ $unread > 0 ? '' : 'hidden' }}">
+                    @csrf
+                    <button type="submit" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                        Tandai semua dibaca
+                    </button>
+                </form>
             </div>
 
-            <div class="max-h-80 overflow-y-auto">
+            <div id="notifList" data-baca-url="{{ url('/notifikasi') }}" class="max-h-80 overflow-y-auto">
                 @forelse ($notifs as $n)
                     <form method="POST" action="{{ route('notifikasi.baca', $n->id) }}">
                         @csrf
@@ -74,7 +73,7 @@
                         </button>
                     </form>
                 @empty
-                    <div class="px-4 py-8 text-center text-sm text-slate-400">
+                    <div id="notifKosong" class="px-4 py-8 text-center text-sm text-slate-400">
                         <i class="fas fa-bell-slash text-2xl mb-2 block"></i>
                         Belum ada notifikasi
                     </div>
