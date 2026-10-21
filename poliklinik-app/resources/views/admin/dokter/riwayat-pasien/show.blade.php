@@ -64,51 +64,8 @@
             </div>
         </div>
 
-        {{-- Obat yang Diresepkan --}}
-        <div class="card bg-base-100 shadow-sm rounded-2xl border border-slate-200">
-            <div class="card-body p-0">
-                <div class="px-6 py-4 border-b border-slate-200">
-                    <h3 class="font-bold text-slate-800">Obat yang Diresepkan</h3>
-                </div>
-                <div class="p-0">
-                    @if($periksa->detailPeriksas && $periksa->detailPeriksas->count() > 0)
-                    <table class="table table-zebra w-full">
-                        <thead class="bg-slate-100 text-slate-500 text-xs uppercase tracking-wider">
-                            <tr>
-                                <th class="px-6 py-4">#</th>
-                                <th class="px-6 py-4">Nama Obat</th>
-                                <th class="px-6 py-4">Harga</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($periksa->detailPeriksas as $index => $detail)
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="px-6 py-4 text-slate-500">{{ $index + 1 }}</td>
-                                <td class="px-6 py-4 font-semibold text-slate-800">{{ $detail->obat->nama_obat }}</td>
-                                <td class="px-6 py-4 text-slate-500">Rp {{ number_format($detail->obat->harga, 0, ',',
-                                    '.') }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                    @else
-                    <div class="px-6 py-5 text-sm text-slate-400">
-                        Tidak ada obat yang diresepkan
-                    </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- Total Biaya --}}
-        <div class="card bg-base-100 shadow-sm rounded-2xl border border-slate-200">
-            <div class="card-body px-6 py-5 flex items-center justify-between">
-                <span class="font-bold text-slate-700">Total Biaya Periksa</span>
-                <span class="text-2xl font-bold text-[#2d4499]">
-                    Rp {{ number_format($periksa->biaya_periksa, 0, ',', '.') }}
-                </span>
-            </div>
-        </div>
+{{-- Rincian biaya: jasa dokter + obat + total --}}
+@include('components.partials.rincian-biaya', ['periksa' => $periksa, 'judul' => 'Obat & Rincian Biaya'])
 
     </div>
 

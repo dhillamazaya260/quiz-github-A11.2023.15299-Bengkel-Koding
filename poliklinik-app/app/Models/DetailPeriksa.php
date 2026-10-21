@@ -12,8 +12,7 @@ class DetailPeriksa extends Model
     // Nama tabel di migration adalah "detail_periksa" (bukan "detail_periksas")
     protected $table = 'detail_periksa';
 
-    protected $fillable = ['id_periksa', 'id_obat'];
-
+    protected $fillable = ['id_periksa', 'id_obat', 'harga'];
     public function periksa()
     {
         return $this->belongsTo(Periksa::class, 'id_periksa');

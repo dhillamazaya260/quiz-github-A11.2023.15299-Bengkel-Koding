@@ -12,7 +12,7 @@ class PembayaranController extends Controller
     /** Daftar pembayaran; yang menunggu verifikasi ditampilkan paling atas. */
     public function index()
     {
-        $pembayarans = Periksa::with('daftarPoli.pasien', 'daftarPoli.jadwalPeriksa.dokter')
+        $pembayarans = Periksa::with('daftarPoli.jadwalPeriksa.dokter.poli', 'detailPeriksas.obat')
             ->orderByRaw("CASE status_bayar WHEN 'menunggu_verifikasi' THEN 0 WHEN 'belum' THEN 1 ELSE 2 END")
             ->orderByDesc('tgl_periksa')
             ->get();

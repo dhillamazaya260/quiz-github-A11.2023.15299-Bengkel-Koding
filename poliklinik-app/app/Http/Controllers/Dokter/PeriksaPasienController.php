@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 class PeriksaPasienController extends Controller
 {
-    /** Jasa dokter, ditambahkan ke total harga obat. */
-    private const BIAYA_JASA_DOKTER = 150000;
 
     public function index()
     {
@@ -42,6 +40,7 @@ class PeriksaPasienController extends Controller
             'obats'      => Obat::orderBy('nama_obat')->get(),
             'daftarPoli' => $daftarPoli,
             'id'         => $daftarPoli->id,
+            'biayaJasa'  => Periksa::BIAYA_JASA_DOKTER,
         ]);
     }
 
@@ -63,26 +62,30 @@ class PeriksaPasienController extends Controller
                 ->with('error', 'Pasien ini sudah diperiksa.');
         }
 
-        $obatIds = $data['obat'] ?? [];
+$obatIds = $data['obat'] ?? [];
 
-        // Harga dihitung di server dari data obat, bukan dipercaya dari input form
-        $totalObat = (int) Obat::whereIn('id', $obatIds)->sum('harga');
+// Harga dihitung di server dari data obat, bukan dipercaya dari input form
+$obats     = Obat::whereIn('id', $obatIds)->get();
+$totalObat = (int) $obats->sum('harga');
 
-        DB::transaction(function () use ($daftarPoli, $data, $obatIds, $totalObat) {
-            $periksa = Periksa::create([
-                'id_daftar_poli' => $daftarPoli->id,
-                'tgl_periksa'    => now(),
-                'catatan'        => $data['catatan'] ?? null,
-                'biaya_periksa'  => self::BIAYA_JASA_DOKTER + $totalObat,
-            ]);
+DB::transaction(function () use ($daftarPoli, $data, $obats, $totalObat) {
+    $periksa = Periksa::create([
+        'id_daftar_poli' => $daftarPoli->id,
+        'tgl_periksa'    => now(),
+        'catatan'        => $data['catatan'] ?? null,
+        'biaya_jasa'     => Periksa::BIAYA_JASA_DOKTER,
+        'biaya_periksa'  => Periksa::BIAYA_JASA_DOKTER + $totalObat,
+    ]);
 
-            foreach ($obatIds as $idObat) {
-                DetailPeriksa::create([
-                    'id_periksa' => $periksa->id,
-                    'id_obat'    => $idObat,
-                ]);
-            }
-        });
+    // Simpan harga obat saat ini sebagai snapshot
+    foreach ($obats as $obat) {
+        DetailPeriksa::create([
+            'id_periksa' => $periksa->id,
+            'id_obat'    => $obat->id,
+            'harga'      => $obat->harga,
+        ]);
+    }
+});
 
         // Setelah transaksi tersimpan, kabari semua dashboard pasien lewat Reverb
         $this->siarkanAntrian($daftarPoli->id_jadwal, $daftarPoli->jadwalPeriksa->hari);

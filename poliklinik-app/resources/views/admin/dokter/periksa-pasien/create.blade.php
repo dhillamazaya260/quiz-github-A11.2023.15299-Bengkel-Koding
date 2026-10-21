@@ -72,12 +72,26 @@
                 <div id="inputObat"></div>
             </div>
 
-            {{-- Total Harga --}}
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Total Harga</label>
-                <input type="text" id="totalHarga" value="Rp 0" readonly
-                       class="input input-bordered w-full bg-slate-50 font-bold text-slate-800">
-            </div>
+           {{-- Rincian biaya --}}
+<div>
+    <label class="block text-sm font-semibold text-slate-700 mb-1">Rincian Biaya</label>
+    <div class="rounded-lg border border-slate-200 divide-y divide-slate-100 text-sm">
+        <div class="flex justify-between px-4 py-2">
+            <span class="text-slate-600">Jasa Dokter</span>
+            <span class="text-slate-800" id="biayaJasa" data-jasa="{{ $biayaJasa }}">
+                Rp {{ number_format($biayaJasa, 0, ',', '.') }}
+            </span>
+        </div>
+        <div class="flex justify-between px-4 py-2">
+            <span class="text-slate-600">Total Obat</span>
+            <span class="text-slate-800" id="totalObat">Rp 0</span>
+        </div>
+        <div class="flex justify-between px-4 py-3 bg-slate-50">
+            <span class="font-bold text-slate-800">Total Biaya</span>
+            <span class="font-bold text-[#2d4499]" id="totalHarga">Rp 0</span>
+        </div>
+    </div>
+</div>
 
             {{-- Catatan --}}
             <div>
@@ -105,7 +119,9 @@
             const list = document.getElementById('listObat');
             const kosong = document.getElementById('kosongObat');
             const inputs = document.getElementById('inputObat');
-            const totalEl = document.getElementById('totalHarga');
+           const totalEl = document.getElementById('totalHarga');
+const totalObatEl = document.getElementById('totalObat');
+const jasa = parseInt(document.getElementById('biayaJasa').dataset.jasa, 10) || 0;
 
             // id => {nama, kemasan, harga}
             const terpilih = new Map();
@@ -143,7 +159,8 @@
                 });
 
                 kosong.style.display = terpilih.size ? 'none' : 'block';
-                totalEl.value = rupiah(total);
+                totalObatEl.textContent = rupiah(total);
+                totalEl.textContent = rupiah(jasa + total);
             }
 
             function tambah(id) {

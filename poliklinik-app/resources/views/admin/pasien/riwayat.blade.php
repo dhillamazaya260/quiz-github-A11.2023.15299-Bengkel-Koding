@@ -92,16 +92,13 @@
                     &middot; {{ $dokter?->nama ?? '-' }} ({{ $dokter?->poli?->nama_poli ?? '-' }})
                 </p>
 
-                {{-- Total tagihan --}}
-                <div class="rounded-xl bg-slate-50 border p-4 mb-4 flex items-center justify-between">
-                    <div>
-                        <div class="text-xs uppercase tracking-wider text-slate-400">Total Tagihan</div>
-                        <div class="text-2xl font-bold text-slate-800">
-                            Rp {{ number_format($periksa->biaya_periksa, 0, ',', '.') }}
-                        </div>
-                    </div>
-                    <span class="badge {{ $periksa->status_bayar_badge }}">{{ $periksa->status_bayar_label }}</span>
-                </div>
+                {{-- Rincian tagihan --}}
+<div class="rounded-xl border border-slate-200 overflow-hidden mb-3">
+    @include('components.partials.rincian-biaya', ['periksa' => $periksa, 'compact' => true])
+</div>
+<div class="flex justify-end mb-4">
+    <span class="badge {{ $periksa->status_bayar_badge }}">{{ $periksa->status_bayar_label }}</span>
+</div>
 
                 @if ($belumBayar)
                     {{-- ===== Form upload bukti bayar ===== --}}

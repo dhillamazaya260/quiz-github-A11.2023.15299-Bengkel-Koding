@@ -111,24 +111,22 @@
                 </div>
             </div>
 
-            {{-- Total biaya + status bayar --}}
-            <div class="card bg-base-100 shadow-sm rounded-2xl border border-slate-200">
-                <div class="card-body px-6 py-5 flex flex-row items-center justify-between flex-wrap gap-3">
-                    <div>
-                        <div class="font-bold text-slate-700">Total Biaya Periksa</div>
-                        <span class="badge {{ $periksa->status_bayar_badge }} mt-1">{{ $periksa->status_bayar_label }}</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span class="text-2xl font-bold text-[#2d4499]">
-                            Rp {{ number_format($periksa->biaya_periksa, 0, ',', '.') }}
-                        </span>
-                        <a href="{{ route('pasien.riwayat') }}"
-                           class="btn btn-sm bg-blue-500 hover:bg-blue-600 text-white border-none rounded-lg">
-                            <i class="fas fa-wallet"></i> Pembayaran
-                        </a>
-                    </div>
-                </div>
-            </div>
+            {{-- Rincian biaya: jasa dokter + obat + total --}}
+@include('components.partials.rincian-biaya', ['periksa' => $periksa, 'judul' => 'Obat & Rincian Biaya'])
+
+{{-- Status pembayaran --}}
+<div class="card bg-base-100 shadow-sm rounded-2xl border border-slate-200">
+    <div class="card-body px-6 py-5 flex flex-row items-center justify-between flex-wrap gap-3">
+        <div>
+            <div class="font-bold text-slate-700">Status Pembayaran</div>
+            <span class="badge {{ $periksa->status_bayar_badge }} mt-1">{{ $periksa->status_bayar_label }}</span>
+        </div>
+        <a href="{{ route('pasien.riwayat') }}"
+           class="btn btn-sm bg-blue-500 hover:bg-blue-600 text-white border-none rounded-lg">
+            <i class="fas fa-wallet"></i> Pembayaran
+        </a>
+    </div>
+</div>
         @else
             <div class="card bg-base-100 shadow-sm rounded-2xl border border-slate-200">
                 <div class="card-body px-6 py-8 text-center text-slate-400 text-sm">

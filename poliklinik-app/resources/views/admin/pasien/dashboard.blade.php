@@ -198,10 +198,26 @@
 
     @endif
 
-    {{-- ============================================================
+        {{-- ============================================================
          TABEL JADWAL POLIKLINIK & DOKTER
-         Kolom: No | Poli | Dokter | Hari | Jam Periksa | Sedang Dilayani
+         Dengan pencarian, dropdown Poli & Hari, dan paginasi
     ============================================================ --}}
+    @php
+        $daftarPoli = $semuaJadwal->pluck('poli')->unique()->sort()->values();
+        $urutanHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        $daftarHari = collect($urutanHari)->filter(fn ($h) => $semuaJadwal->contains('hari', $h))->values();
+        $hariIniNama = now()->locale('id')->isoFormat('dddd');
+        $hariColors = [
+            'Senin'  => ['#dbeafe', '#1d4ed8'],
+            'Selasa' => ['#f0fdf4', '#15803d'],
+            'Rabu'   => ['#fef9c3', '#a16207'],
+            'Kamis'  => ['#fdf4ff', '#9333ea'],
+            'Jumat'  => ['#fff7ed', '#c2410c'],
+            'Sabtu'  => ['#f0fdfa', '#0f766e'],
+            'Minggu' => ['#fef2f2', '#dc2626'],
+        ];
+    @endphp
+
     <div class="card bg-base-100 shadow-sm rounded-2xl">
         <div class="card-body p-0">
 
@@ -222,15 +238,47 @@
                 </div>
             </div>
 
-            {{-- Tabel --}}
-            <div class="overflow-x-auto">
-                @if($semuaJadwal->isEmpty())
-                    <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-                        <i class="fas fa-calendar-xmark text-5xl mb-3 text-slate-200"></i>
-                        <p class="font-semibold">Belum ada jadwal poliklinik</p>
-                        <p class="text-xs mt-1">Hubungi admin untuk informasi lebih lanjut.</p>
+            @if($semuaJadwal->isEmpty())
+                <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                    <i class="fas fa-calendar-xmark text-5xl mb-3 text-slate-200"></i>
+                    <p class="font-semibold">Belum ada jadwal poliklinik</p>
+                    <p class="text-xs mt-1">Hubungi admin untuk informasi lebih lanjut.</p>
+                </div>
+            @else
+
+                {{-- Filter: pencarian + dropdown --}}
+                <div class="px-6 py-4 border-b border-base-200 bg-slate-50/60">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                        <div class="md:col-span-5 relative">
+                            <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                            <input id="cariJadwal" type="search" autocomplete="off"
+                                   placeholder="Cari poli, dokter, atau hari..."
+                                   class="input input-bordered w-full pl-9 h-10 text-sm">
+                        </div>
+
+                        <select id="filterPoli" class="select select-bordered md:col-span-3 w-full h-10 text-sm">
+                            <option value="">Semua Poli</option>
+                            @foreach($daftarPoli as $namaPoli)
+                                <option value="{{ $namaPoli }}">{{ $namaPoli }}</option>
+                            @endforeach
+                        </select>
+
+                        <select id="filterHari" class="select select-bordered md:col-span-3 w-full h-10 text-sm">
+                            <option value="">Semua Hari</option>
+                            @foreach($daftarHari as $h)
+                                <option value="{{ $h }}">{{ $h }}{{ $h === $hariIniNama ? ' (hari ini)' : '' }}</option>
+                            @endforeach
+                        </select>
+
+                        <button type="button" id="resetFilter"
+                                class="btn btn-ghost md:col-span-1 h-10 min-h-0 text-xs text-slate-500">
+                            <i class="fas fa-rotate-left"></i> Reset
+                        </button>
                     </div>
-                @else
+                </div>
+
+                {{-- Tabel --}}
+                <div class="overflow-x-auto">
                     <table class="w-full text-sm" id="tabelJadwal">
                         <thead>
                             <tr class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
@@ -246,14 +294,18 @@
                             @foreach($semuaJadwal as $i => $jadwal)
                             @php
                                 $isMyJadwal = $bannerData && $bannerData['id_jadwal'] == $jadwal['id'];
+                                $hc = $hariColors[$jadwal['hari']] ?? ['#f1f5f9', '#475569'];
                             @endphp
-                            <tr class="border-t border-slate-100 transition-colors duration-150 group
+                            <tr class="baris-jadwal border-t border-slate-100 transition-colors duration-150 group
                                        {{ $isMyJadwal ? 'bg-indigo-50/60' : 'hover:bg-slate-50/80' }}"
-                                data-jadwal-id="{{ $jadwal['id'] }}">
+                                data-jadwal-id="{{ $jadwal['id'] }}"
+                                data-poli="{{ $jadwal['poli'] }}"
+                                data-dokter="{{ $jadwal['dokter'] }}"
+                                data-hari="{{ $jadwal['hari'] }}">
 
-                                {{-- No --}}
+                                {{-- No (diurutkan ulang oleh JS sesuai hasil filter) --}}
                                 <td class="py-3.5 px-5 text-center">
-                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold
+                                    <span class="no-urut inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold
                                                  {{ $isMyJadwal
                                                     ? 'bg-indigo-100 text-indigo-700'
                                                     : 'bg-slate-100 text-slate-500' }}">
@@ -285,18 +337,6 @@
 
                                 {{-- Hari --}}
                                 <td class="py-3.5 px-5">
-                                    @php
-                                        $hariColors = [
-                                            'Senin'  => ['bg:#dbeafe','color:#1d4ed8'],
-                                            'Selasa' => ['bg:#f0fdf4','color:#15803d'],
-                                            'Rabu'   => ['bg:#fef9c3','color:#a16207'],
-                                            'Kamis'  => ['bg:#fdf4ff','color:#9333ea'],
-                                            'Jumat'  => ['bg:#fff7ed','color:#c2410c'],
-                                            'Sabtu'  => ['bg:#f0fdfa','color:#0f766e'],
-                                            'Minggu' => ['bg:#fef2f2','color:#dc2626'],
-                                        ];
-                                        $hc = $hariColors[$jadwal['hari']] ?? ['bg:#f1f5f9','color:#475569'];
-                                    @endphp
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
                                           style="background:{{ $hc[0] }}; color:{{ $hc[1] }};">
                                         {{ $jadwal['hari'] }}
@@ -330,32 +370,138 @@
                                         <span class="text-slate-300 text-sm">—</span>
                                     @endif
                                 </td>
-
                             </tr>
                             @endforeach
+
+                            {{-- Tampil jika tidak ada hasil filter --}}
+                            <tr id="kosongJadwal" class="hidden">
+                                <td colspan="6" class="py-14 text-center text-slate-400">
+                                    <i class="fas fa-magnifying-glass text-3xl mb-2 text-slate-200"></i>
+                                    <p class="font-semibold text-sm">Tidak ada jadwal yang cocok</p>
+                                    <p class="text-xs mt-1">Coba ubah kata kunci atau klik Reset.</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
-                @endif
-            </div>
+                </div>
 
-            {{-- Footer hint --}}
-            @if(!$semuaJadwal->isEmpty())
-            <div class="px-6 py-3 border-t border-slate-100 flex items-center gap-2">
-                <span class="inline-block w-3 h-3 rounded" style="background:linear-gradient(135deg,#fef3c7,#fde68a);"></span>
-                <span class="text-[11px] text-slate-400">Kolom "Sedang Dilayani" hanya aktif untuk jadwal hari ini</span>
-                @if($bannerData)
-                <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-600">
-                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                    Baris disorot = jadwal antrian Anda
-                </span>
-                @endif
-            </div>
+                {{-- Footer: info + paginasi --}}
+                <div class="px-6 py-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <span id="infoJadwal" class="text-xs text-slate-500"></span>
+
+                    <div class="flex items-center gap-2 sm:ml-auto">
+                        <button type="button" id="prevJadwal" class="btn btn-sm btn-ghost border border-slate-200">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </button>
+                        <span id="halJadwal" class="text-xs font-semibold text-slate-600 min-w-[3rem] text-center"></span>
+                        <button type="button" id="nextJadwal" class="btn btn-sm btn-ghost border border-slate-200">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="px-6 pb-3 flex flex-wrap items-center gap-2">
+                    <span class="inline-block w-3 h-3 rounded" style="background:linear-gradient(135deg,#fef3c7,#fde68a);"></span>
+                    <span class="text-[11px] text-slate-400">Kolom "Sedang Dilayani" hanya aktif untuk jadwal hari ini</span>
+                    @if($bannerData)
+                    <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-600">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        Baris disorot = jadwal antrian Anda
+                    </span>
+                    @endif
+                </div>
+
             @endif
 
         </div>
     </div>
 
+        </div>
+    </div>
+
     @push('scripts')
+        <script>
+    (function () {
+        'use strict';
+
+        const tbody = document.querySelector('#tabelJadwal tbody');
+        if (!tbody) return;
+
+        const rows     = Array.from(tbody.querySelectorAll('tr.baris-jadwal'));
+        const cari     = document.getElementById('cariJadwal');
+        const selPoli  = document.getElementById('filterPoli');
+        const selHari  = document.getElementById('filterHari');
+        const btnReset = document.getElementById('resetFilter');
+        const kosong   = document.getElementById('kosongJadwal');
+        const info     = document.getElementById('infoJadwal');
+        const btnPrev  = document.getElementById('prevJadwal');
+        const btnNext  = document.getElementById('nextJadwal');
+        const lblHal   = document.getElementById('halJadwal');
+
+        const PER_HALAMAN = 8;
+        let halaman = 1;
+
+        // Abaikan huruf besar/kecil dan aksen supaya pencarian lebih longgar
+        const norm = (s) => (s || '').toString().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+        rows.forEach((r) => {
+            r._cari = norm(r.dataset.poli + ' ' + r.dataset.dokter + ' ' + r.dataset.hari);
+        });
+
+        function terfilter() {
+            const kw = norm(cari.value);
+            const poli = selPoli.value;
+            const hari = selHari.value;
+
+            return rows.filter((r) => {
+                if (poli && r.dataset.poli !== poli) return false;
+                if (hari && r.dataset.hari !== hari) return false;
+                if (kw && !r._cari.includes(kw)) return false;
+                return true;
+            });
+        }
+
+        function render() {
+            const hasil  = terfilter();
+            const total  = hasil.length;
+            const jumlahHal = Math.max(1, Math.ceil(total / PER_HALAMAN));
+            if (halaman > jumlahHal) halaman = jumlahHal;
+
+            const awal  = (halaman - 1) * PER_HALAMAN;
+            const tampil = hasil.slice(awal, awal + PER_HALAMAN);
+            const set = new Set(tampil);
+
+            rows.forEach((r) => r.classList.toggle('hidden', !set.has(r)));
+            tampil.forEach((r, i) => {
+                const no = r.querySelector('.no-urut');
+                if (no) no.textContent = awal + i + 1;
+            });
+
+            kosong.classList.toggle('hidden', total > 0);
+            info.textContent = total === 0
+                ? 'Tidak ada jadwal yang cocok'
+                : 'Menampilkan ' + (awal + 1) + '–' + (awal + tampil.length) + ' dari ' + total + ' jadwal';
+            lblHal.textContent = halaman + ' / ' + jumlahHal;
+            btnPrev.disabled = halaman <= 1;
+            btnNext.disabled = halaman >= jumlahHal;
+        }
+
+        function ubahFilter() { halaman = 1; render(); }
+
+        cari.addEventListener('input', ubahFilter);
+        selPoli.addEventListener('change', ubahFilter);
+        selHari.addEventListener('change', ubahFilter);
+        btnPrev.addEventListener('click', () => { if (halaman > 1) { halaman--; render(); } });
+        btnNext.addEventListener('click', () => { halaman++; render(); });
+        btnReset.addEventListener('click', () => {
+            cari.value = ''; selPoli.value = ''; selHari.value = '';
+            ubahFilter();
+        });
+
+        render();
+    })();
+    </script>
     <script>
     (function () {
         'use strict';
