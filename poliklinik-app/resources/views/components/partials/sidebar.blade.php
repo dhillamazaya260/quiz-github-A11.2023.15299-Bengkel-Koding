@@ -72,6 +72,20 @@
                     <i class="fas fa-pills w-4 text-center"></i>
                     Manajemen Obat
                 </a>
+
+                @php
+                    $menungguBayar = \App\Models\Periksa::where('status_bayar', \App\Models\Periksa::BAYAR_MENUNGGU)->count();
+                @endphp
+                <a href="{{ route('pembayaran.index') }}"
+                   class="{{ $baseLink }} {{ request()->routeIs('pembayaran.*') ? $active : $inactive }}">
+                    <i class="fas fa-file-invoice-dollar w-4 text-center"></i>
+                    <span class="flex-1">Verifikasi Pembayaran</span>
+                    @if ($menungguBayar > 0)
+                        <span class="min-w-5 h-5 px-1.5 rounded-full bg-amber-400 text-slate-900 text-[11px] font-bold flex items-center justify-center">
+                            {{ $menungguBayar }}
+                        </span>
+                    @endif
+                </a>
             </div>
         @endif
 

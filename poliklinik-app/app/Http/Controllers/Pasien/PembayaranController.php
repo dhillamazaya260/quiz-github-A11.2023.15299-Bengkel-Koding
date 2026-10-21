@@ -55,6 +55,7 @@ class PembayaranController extends Controller
                 'status_bayar' => Periksa::BAYAR_MENUNGGU,
                 'bukti_bayar'  => $path,
                 'tgl_bayar'    => now(),
+                'catatan_penolakan' => null,
             ]);
 
             return true;

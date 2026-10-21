@@ -33,6 +33,9 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="badge {{ $periksa->status_bayar_badge }}">{{ $periksa->status_bayar_label }}</span>
+                                    @if ($periksa->catatan_penolakan && $periksa->status_bayar === \App\Models\Periksa::BAYAR_BELUM)
+                                        <div class="text-xs text-red-500 mt-1">Bukti ditolak, unggah ulang</div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     @if ($periksa->status_bayar === \App\Models\Periksa::BAYAR_BELUM)
@@ -102,6 +105,16 @@
 
                 @if ($belumBayar)
                     {{-- ===== Form upload bukti bayar ===== --}}
+                    @if ($periksa->catatan_penolakan)
+                        <div class="alert alert-warning mb-4 rounded-xl text-sm">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>
+                                <strong>Bukti sebelumnya ditolak admin.</strong><br>
+                                {{ $periksa->catatan_penolakan }}<br>
+                                Silakan unggah ulang bukti pembayaran yang benar.
+                            </span>
+                        </div>
+                    @endif
                     @if ($adaError)
                         <div class="alert alert-error mb-4 rounded-xl text-sm">
                             <i class="fas fa-circle-xmark"></i>

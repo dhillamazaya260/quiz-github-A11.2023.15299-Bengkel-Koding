@@ -27,6 +27,8 @@ class DashboardController extends Controller
             'belum'      => Periksa::where('status_bayar', Periksa::BAYAR_BELUM)->count(),
             'lunas'      => Periksa::where('status_bayar', Periksa::BAYAR_LUNAS)->count(),
             'pendapatan' => (int) Periksa::where('status_bayar', Periksa::BAYAR_LUNAS)->sum('biaya_periksa'),
+            'nominal_menunggu' => (int) Periksa::where('status_bayar', Periksa::BAYAR_MENUNGGU)->sum('biaya_periksa'),
+            'nominal_belum'    => (int) Periksa::where('status_bayar', Periksa::BAYAR_BELUM)->sum('biaya_periksa'),
         ];
 
         // ---- Aktivitas poliklinik ----

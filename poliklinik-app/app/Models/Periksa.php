@@ -28,6 +28,7 @@ class Periksa extends Model
         'bukti_bayar',
         'tgl_bayar',
         'tgl_verifikasi',
+        'catatan_penolakan',
     ];
 
     protected $casts = [
