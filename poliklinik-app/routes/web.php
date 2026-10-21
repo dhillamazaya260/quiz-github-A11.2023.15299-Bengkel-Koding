@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminPoliController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DokterController;
 use App\Http\Controllers\Admin\ObatController;
 use App\Http\Controllers\Admin\PasienController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuktiBayarController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Dokter\DashboardController as DokterDashboardController;
 use App\Http\Controllers\Dokter\JadwalPeriksaController;
 use App\Http\Controllers\Dokter\PeriksaPasienController;
 use App\Http\Controllers\Dokter\RiwayatPasienController;
@@ -52,7 +54,7 @@ foreach (['admin', 'dokter', 'pasien'] as $role) {
 
 // Admin Routes
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
-    Route::get('/dashboard', fn () => view('admin.dashboard'))->name('admin.dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
 
     Route::resource('polis', AdminPoliController::class)->except('show');
     Route::resource('dokter', DokterController::class)->except('show');
@@ -65,7 +67,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
 // Dokter Routes
 Route::middleware(['auth', 'role:dokter'])->prefix('dokter')->group(function () {
-    Route::get('/dashboard', fn () => view('admin.dokter.dashboard'))->name('dokter.dashboard');
+    Route::get('/dashboard', [DokterDashboardController::class, 'index'])->name('dokter.dashboard');
 
     Route::resource('jadwal-periksa', JadwalPeriksaController::class)->except('show');
 
