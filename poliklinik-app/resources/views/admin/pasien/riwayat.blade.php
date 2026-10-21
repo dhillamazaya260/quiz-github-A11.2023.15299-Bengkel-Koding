@@ -1,7 +1,7 @@
-<x-layouts.app title="Riwayat Pemeriksaan">
+<x-layouts.app title="Pembayaran">
 
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-slate-800">Riwayat Pemeriksaan</h2>
+        <h2 class="text-2xl font-bold text-slate-800">Pembayaran</h2>
     </div>
 
     <div class="card bg-base-100 shadow-md rounded-2 border">

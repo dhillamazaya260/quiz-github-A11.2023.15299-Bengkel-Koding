@@ -512,6 +512,7 @@
         const bannerEl    = document.getElementById('bannerAntrian');
         const myJadwalId  = bannerEl ? Number(bannerEl.dataset.jadwalId) : null;
         const antrianSaya = bannerEl ? Number(bannerEl.dataset.antrianSaya) : null;
+        let selesai       = false; // true setelah pasien selesai diperiksa
 
         /** Pad angka jadi 3 digit, 0 → '—' */
         function pad(n) {
@@ -537,15 +538,24 @@
                  + '<span style="color:#c7d2fe;">Masih <strong>' + selisih + '</strong> nomor antrian sebelum giliran Anda.</span>';
         }
 
-        /** Update banner antrian aktif */
+        /** Update banner antrian aktif. banner === null berarti antrian sudah selesai diperiksa. */
         function updateBanner(banner) {
-            if (!banner) return;
-
             const ndEl  = document.getElementById('bannerNomorDilayani');
             const msgEl = document.getElementById('bannerStatusMsg');
+            if (!bannerEl || !msgEl) return;
+
+            if (!banner) {
+                // Pasien sudah diperiksa -> antrian tidak aktif lagi
+                if (ndEl && antrianSaya) ndEl.textContent = pad(antrianSaya);
+                msgEl.innerHTML = '<i class="fas fa-circle-check" style="color:#4ade80;"></i>'
+                    + '<span style="color:#86efac;">Pemeriksaan Anda sudah selesai. '
+                    + '<a href="{{ route('pasien.riwayat') }}" style="text-decoration:underline;font-weight:700;">Lihat riwayat &amp; pembayaran</a></span>';
+                selesai = true;
+                return;
+            }
 
             if (ndEl)  ndEl.textContent = pad(banner.nomor_dilayani);
-            if (msgEl) msgEl.innerHTML  = statusHTML(banner.nomor_dilayani, banner.antrian_saya);
+            msgEl.innerHTML = statusHTML(banner.nomor_dilayani, banner.antrian_saya);
         }
 
         /** Update kolom "Sedang Dilayani" di tabel */
@@ -570,9 +580,9 @@
         }
 
         /**
-         * Sinkron sekali dari server. Dipanggil hanya saat WebSocket (re)connect,
-         * supaya event yang terlewat saat koneksi putus tetap terkejar.
-         * Ini BUKAN polling berkala.
+         * Ambil kondisi terbaru dari server (sumber data yang benar).
+         * Dipanggil saat WebSocket (re)connect, setelah event untuk jadwal pasien,
+         * saat tab kembali aktif, dan sebagai cadangan jika WebSocket terputus.
          */
         function sinkron() {
             fetch(endpoint, {
@@ -583,7 +593,7 @@
             })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                updateBanner(data.banner);
+                updateBanner(data.banner);   // null = sudah selesai diperiksa
                 updateTabel(data.jadwals);
                 updateTimestamp();
             })
@@ -592,32 +602,43 @@
             });
         }
 
+        const koneksi = window.Echo?.connector?.pusher?.connection;
+        const tersambung = function () { return koneksi && koneksi.state === 'connected'; };
+
         if (!window.Echo) {
             console.warn('[Antrian Poliklinik] Laravel Echo belum dimuat (jalankan npm run dev / build).');
-            return;
+        } else {
+            // Event dari Reverb: dokter baru selesai memeriksa satu pasien
+            window.Echo.channel('antrian')
+                .listen('.antrian.diperbarui', function (e) {
+                    // Tabel hanya menampilkan nomor dilayani untuk jadwal hari ini
+                    if (e.hari_ini) {
+                        updateTabel({ [e.id_jadwal]: { nomor_dilayani: e.nomor_dilayani } });
+                    }
+
+                    // Banner: langsung tampilkan nomor baru, lalu konfirmasi ke server
+                    // (server yang tahu apakah antrian pasien ini sudah selesai diperiksa)
+                    if (!selesai && myJadwalId !== null && Number(e.id_jadwal) === myJadwalId) {
+                        updateBanner({ nomor_dilayani: e.nomor_dilayani, antrian_saya: antrianSaya });
+                        sinkron();
+                    }
+
+                    updateTimestamp();
+                });
+
+            // Sinkron saat tersambung (pertama kali maupun setelah putus)
+            if (koneksi) koneksi.bind('connected', sinkron);
         }
 
-        // Event dari Reverb: dokter baru selesai memeriksa satu pasien
-        window.Echo.channel('antrian')
-            .listen('.antrian.diperbarui', function (e) {
-                // Tabel hanya menampilkan nomor dilayani untuk jadwal hari ini
-                if (e.hari_ini) {
-                    updateTabel({ [e.id_jadwal]: { nomor_dilayani: e.nomor_dilayani } });
-                }
+        // Cadangan: bila WebSocket tidak tersambung (Reverb mati / terputus), cek tiap 5 detik.
+        setInterval(function () {
+            if (!selesai && bannerEl && !tersambung()) sinkron();
+        }, 5000);
 
-                // Banner: hanya jika event untuk jadwal tempat pasien mengantri
-                if (myJadwalId !== null && Number(e.id_jadwal) === myJadwalId) {
-                    updateBanner({ nomor_dilayani: e.nomor_dilayani, antrian_saya: antrianSaya });
-                }
-
-                updateTimestamp();
-            });
-
-        // Sinkron saat tersambung (pertama kali maupun setelah putus)
-        const koneksi = window.Echo.connector?.pusher?.connection;
-        if (koneksi) {
-            koneksi.bind('connected', sinkron);
-        }
+        // Saat tab kembali dibuka, langsung ambil kondisi terbaru.
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) sinkron();
+        });
     })();
     </script>
     @endpush

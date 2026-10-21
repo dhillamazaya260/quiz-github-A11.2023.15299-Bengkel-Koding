@@ -117,7 +117,7 @@
                 <a href="{{ route('pasien.riwayat') }}"
                    class="{{ $baseLink }} {{ request()->routeIs('pasien.riwayat*', 'pasien.bayar') ? $active : $inactive }}">
                     <i class="fas fa-file-invoice-dollar w-4 text-center"></i>
-                    Riwayat Pemeriksaan
+                    Pembayaran
                 </a>
             </div>
         @endif
