@@ -44,7 +44,7 @@
                     <div class="flex gap-2">
                         <span class="w-36 text-slate-500 font-medium">Jadwal</span>
                         <span class="text-slate-800">
-                            {{ $jadwal?->hari ?? '-' }},
+                            {{ $jadwal?->hari ?? '-' }}{{ $daftar->tanggal_jadwal ? ', ' . $daftar->tanggal_jadwal->format('d/m/Y') : '' }},
                             {{ substr($jadwal?->jam_mulai ?? '', 0, 5) }}&ndash;{{ substr($jadwal?->jam_selesai ?? '', 0, 5) }}
                         </span>
                     </div>

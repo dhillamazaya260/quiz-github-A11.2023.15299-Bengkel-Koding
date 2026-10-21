@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dokter;
 
+use App\Events\AntrianDiperbarui;
 use App\Http\Controllers\Controller;
 use App\Models\DaftarPoli;
 use App\Models\DetailPeriksa;
@@ -83,9 +84,31 @@ class PeriksaPasienController extends Controller
             }
         });
 
+        // Setelah transaksi tersimpan, kabari semua dashboard pasien lewat Reverb
+        $this->siarkanAntrian($daftarPoli->id_jadwal, $daftarPoli->jadwalPeriksa->hari);
+
         return redirect()
             ->route('periksa-pasien.index')
             ->with('success', 'Data periksa berhasil disimpan.');
+    }
+
+    /**
+     * Kirim nomor yang sedang dilayani pada jadwal ini (nomor terbesar yang sudah diperiksa).
+     * Kegagalan WebSocket (mis. Reverb belum jalan) tidak boleh membatalkan hasil periksa.
+     */
+    private function siarkanAntrian(int $idJadwal, string $hari): void
+    {
+        try {
+            $nomorDilayani = (int) DaftarPoli::where('id_jadwal', $idJadwal)
+                ->whereHas('periksa')
+                ->max('no_antrian');
+
+            $hariIni = $hari === now()->locale('id')->isoFormat('dddd');
+
+            AntrianDiperbarui::dispatch($idJadwal, $nomorDilayani, $hariIni);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** Ambil pendaftaran poli, 404 jika bukan milik jadwal dokter yang login. */

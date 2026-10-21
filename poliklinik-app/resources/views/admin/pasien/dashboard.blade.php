@@ -49,6 +49,7 @@
         <div id="bannerAntrian"
              class="relative overflow-hidden rounded-2xl shadow-xl mb-6"
              data-jadwal-id="{{ $bannerData['id_jadwal'] }}"
+             data-antrian-saya="{{ $bannerData['antrian_saya'] }}"
              style="background: linear-gradient(135deg, #0f172a 0%, #1e2d6b 40%, #2d4499 80%, #3b5fd4 100%);
                     border: 1px solid rgba(99,102,241,0.45);">
 
@@ -359,8 +360,12 @@
     (function () {
         'use strict';
 
-        const POLL_MS  = 5000;
         const endpoint = '{{ route('pasien.antrian-status') }}';
+
+        // Data antrian aktif pasien (null jika pasien tidak punya antrian aktif)
+        const bannerEl    = document.getElementById('bannerAntrian');
+        const myJadwalId  = bannerEl ? Number(bannerEl.dataset.jadwalId) : null;
+        const antrianSaya = bannerEl ? Number(bannerEl.dataset.antrianSaya) : null;
 
         /** Pad angka jadi 3 digit, 0 → '—' */
         function pad(n) {
@@ -418,8 +423,12 @@
                 + String(t.getSeconds()).padStart(2,'0');
         }
 
-        /** Fetch dan update semua elemen live */
-        function poll() {
+        /**
+         * Sinkron sekali dari server. Dipanggil hanya saat WebSocket (re)connect,
+         * supaya event yang terlewat saat koneksi putus tetap terkejar.
+         * Ini BUKAN polling berkala.
+         */
+        function sinkron() {
             fetch(endpoint, {
                 headers: {
                     'Accept': 'application/json',
@@ -433,12 +442,36 @@
                 updateTimestamp();
             })
             .catch(function (err) {
-                console.warn('[Antrian Poliklinik] Polling error:', err);
+                console.warn('[Antrian Poliklinik] Sinkron gagal:', err);
             });
         }
 
-        // Mulai polling setiap 5 detik
-        setInterval(poll, POLL_MS);
+        if (!window.Echo) {
+            console.warn('[Antrian Poliklinik] Laravel Echo belum dimuat (jalankan npm run dev / build).');
+            return;
+        }
+
+        // Event dari Reverb: dokter baru selesai memeriksa satu pasien
+        window.Echo.channel('antrian')
+            .listen('.antrian.diperbarui', function (e) {
+                // Tabel hanya menampilkan nomor dilayani untuk jadwal hari ini
+                if (e.hari_ini) {
+                    updateTabel({ [e.id_jadwal]: { nomor_dilayani: e.nomor_dilayani } });
+                }
+
+                // Banner: hanya jika event untuk jadwal tempat pasien mengantri
+                if (myJadwalId !== null && Number(e.id_jadwal) === myJadwalId) {
+                    updateBanner({ nomor_dilayani: e.nomor_dilayani, antrian_saya: antrianSaya });
+                }
+
+                updateTimestamp();
+            });
+
+        // Sinkron saat tersambung (pertama kali maupun setelah putus)
+        const koneksi = window.Echo.connector?.pusher?.connection;
+        if (koneksi) {
+            koneksi.bind('connected', sinkron);
+        }
     })();
     </script>
     @endpush
