@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\ObatExport;
 use App\Http\Controllers\Controller;
 use App\Models\Obat;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ObatController extends Controller
 {
@@ -13,6 +15,11 @@ class ObatController extends Controller
         $obats = Obat::orderBy('nama_obat')->get();
 
         return view('admin.obat.index', compact('obats'));
+    }
+
+    public function export()
+    {
+        return Excel::download(new ObatExport, 'data-obat-' . date('Ymd-His') . '.xlsx');
     }
 
     public function create()
@@ -48,10 +55,18 @@ class ObatController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'nama_obat' => ['required', 'string', 'max:255'],
             'kemasan'   => ['nullable', 'string', 'max:35'],
+            'stok'      => ['nullable', 'integer', 'min:0'],
             'harga'     => ['required', 'integer', 'min:0'],
         ]);
+
+        // Kolom stok NOT NULL (default 0): kalau tidak diisi, jangan ditimpa NULL.
+        if (($data['stok'] ?? null) === null) {
+            unset($data['stok']);
+        }
+
+        return $data;
     }
 }

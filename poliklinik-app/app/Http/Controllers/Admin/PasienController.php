@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\PasienExport;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PasienController extends Controller
 {
@@ -13,6 +15,11 @@ class PasienController extends Controller
     {
         $pasiens = User::where('role', 'pasien')->get();
         return view('admin.pasien.index', compact('pasiens'));
+    }
+
+    public function export()
+    {
+        return Excel::download(new PasienExport, 'data-pasien-' . date('Ymd-His') . '.xlsx');
     }
 
     public function create()

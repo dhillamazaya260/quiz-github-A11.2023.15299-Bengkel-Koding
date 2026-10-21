@@ -3,11 +3,18 @@
     <div class="flex items-center justify-between mb-5">
         <h1 class="text-2xl font-bold text-slate-800">Jadwal Periksa</h1>
 
+        <div class="flex items-center gap-2">
+        <a href="{{ route('jadwal-periksa.export') }}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow transition">
+            <i class="fas fa-file-excel text-xs"></i>
+            Export Excel
+        </a>
         <a href="{{ route('jadwal-periksa.create') }}"
            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow transition">
             <i class="fas fa-plus text-xs"></i>
             Tambah Jadwal
         </a>
+        </div>
     </div>
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden">

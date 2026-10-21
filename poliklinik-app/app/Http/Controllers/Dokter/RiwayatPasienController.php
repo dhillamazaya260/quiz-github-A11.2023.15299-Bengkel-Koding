@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Dokter;
 
+use App\Exports\RiwayatPasienExport;
 use App\Http\Controllers\Controller;
 use App\Models\Periksa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RiwayatPasienController extends Controller
 {
@@ -20,6 +22,11 @@ class RiwayatPasienController extends Controller
         ])->orderBy('tgl_periksa', 'desc')->get();
 
         return view('admin.dokter.riwayat-pasien.index', compact('riwayatPasien'));
+    }
+
+    public function export()
+    {
+        return Excel::download(new RiwayatPasienExport(Auth::id()), 'riwayat-pasien-' . date('Ymd-His') . '.xlsx');
     }
 
     public function show($id)

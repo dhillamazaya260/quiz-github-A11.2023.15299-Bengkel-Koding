@@ -56,6 +56,11 @@ foreach (['admin', 'dokter', 'pasien'] as $role) {
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
 
+    // Export Excel (didefinisikan sebelum resource)
+    Route::get('dokter/export', [DokterController::class, 'export'])->name('dokter.export');
+    Route::get('pasien/export', [PasienController::class, 'export'])->name('pasien.export');
+    Route::get('obat/export', [ObatController::class, 'export'])->name('obat.export');
+
     Route::resource('polis', AdminPoliController::class)->except('show');
     Route::resource('dokter', DokterController::class)->except('show');
     Route::resource('pasien', PasienController::class)->except('show');
@@ -70,12 +75,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 Route::middleware(['auth', 'role:dokter'])->prefix('dokter')->group(function () {
     Route::get('/dashboard', [DokterDashboardController::class, 'index'])->name('dokter.dashboard');
 
+    Route::get('jadwal-periksa/export', [JadwalPeriksaController::class, 'export'])->name('jadwal-periksa.export');
     Route::resource('jadwal-periksa', JadwalPeriksaController::class)->except('show');
 
     Route::get('/periksa-pasien', [PeriksaPasienController::class, 'index'])->name('periksa-pasien.index');
     Route::post('/periksa-pasien', [PeriksaPasienController::class, 'store'])->name('periksa-pasien.store');
     Route::get('/periksa-pasien/{id}', [PeriksaPasienController::class, 'create'])->name('periksa-pasien.create');
 
+    Route::get('/riwayat-pasien/export', [RiwayatPasienController::class, 'export'])->name('riwayat-pasien.export');
     Route::get('/riwayat-pasien', [RiwayatPasienController::class, 'index'])->name('riwayat-pasien.index');
     Route::get('/riwayat-pasien/{id}', [RiwayatPasienController::class, 'show'])->name('riwayat-pasien.show');
 });
