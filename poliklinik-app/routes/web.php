@@ -8,11 +8,13 @@ use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuktiBayarController;
 use App\Http\Controllers\NotifikasiController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Dokter\JadwalPeriksaController;
 use App\Http\Controllers\Dokter\PeriksaPasienController;
 use App\Http\Controllers\Dokter\RiwayatPasienController;
 use App\Http\Controllers\Pasien\PembayaranController as PasienPembayaranController;
 use App\Http\Controllers\Pasien\PoliController as PasienPoliController;
+use App\Http\Controllers\Pasien\RiwayatPendaftaranController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -38,6 +40,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifikasi/{id}/baca', [NotifikasiController::class, 'baca'])->name('notifikasi.baca');
     Route::get('/bukti-bayar/{id}', [BuktiBayarController::class, 'show'])->name('bukti-bayar.show');
 });
+
+// Profil & ganti password (satu per role, supaya sidebar tiap role tetap tampil)
+// Nama route: admin.profile, dokter.profile, pasien.profile (+ .password)
+foreach (['admin', 'dokter', 'pasien'] as $role) {
+    Route::middleware(['auth', 'role:' . $role])->prefix($role)->group(function () use ($role) {
+        Route::get('/profile', [ProfileController::class, 'edit'])->name($role . '.profile');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name($role . '.profile.password');
+    });
+}
 
 // Admin Routes
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
@@ -74,6 +85,11 @@ Route::middleware(['auth', 'role:pasien'])->prefix('pasien')->group(function () 
     Route::get('/daftar', [PasienPoliController::class, 'get'])->name('pasien.daftar');
     Route::post('/daftar', [PasienPoliController::class, 'submit'])->name('pasien.daftar.submit');
 
+    // Riwayat pendaftaran poli + detail pemeriksaan
+    Route::get('/riwayat-pendaftaran', [RiwayatPendaftaranController::class, 'index'])->name('pasien.histori.index');
+    Route::get('/riwayat-pendaftaran/{id}', [RiwayatPendaftaranController::class, 'show'])->name('pasien.histori.show');
+
+    // Riwayat pemeriksaan + pembayaran (pop-up)
     Route::get('/riwayat', [PasienPembayaranController::class, 'index'])->name('pasien.riwayat');
     Route::post('/riwayat/{id}/bayar', [PasienPembayaranController::class, 'bayar'])->name('pasien.bayar');
 });

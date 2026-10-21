@@ -67,7 +67,7 @@
 
                 {{-- Label --}}
                 <p class="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4">
-                    <i class="fas fa-ticket mr-1.5"></i> Antrian Aktif Anda
+                    <i class="fas fa-ticket mr-1.5"></i> Antrian Anda
                 </p>
 
                 {{-- Info: Poli · Dokter · Jadwal --}}
@@ -116,7 +116,7 @@
                     <div class="flex-1 rounded-2xl p-5 text-center"
                          style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);">
                         <p class="text-indigo-300 text-xs font-medium mb-2 uppercase tracking-wide">
-                            <i class="fas fa-ticket mr-1"></i> Nomor Antrian Saya
+                            <i class="fas fa-ticket mr-1"></i> Nomor Antrian Anda
                         </p>
                         <p class="text-white font-black"
                            style="font-size: 3.5rem; line-height: 1; letter-spacing: -2px;">
@@ -131,7 +131,6 @@
                             <i class="fas fa-angles-right text-indigo-400 text-lg"></i>
                             <div class="w-0.5 h-8 rounded-full" style="background: rgba(165,180,252,0.3);"></div>
                         </div>
-                        <i class="fas fa-angles-down text-indigo-400 text-lg sm:hidden"></i>
                     </div>
 
                     {{-- Sedang Dilayani --}}
@@ -215,9 +214,6 @@
                         </span>
                         Jadwal Poliklinik &amp; Dokter
                     </h2>
-                    <p class="text-xs text-slate-400 mt-0.5 ml-9">
-                        Nomor dilayani diperbarui otomatis setiap 5 detik
-                    </p>
                 </div>
                 <div class="flex items-center gap-2 ml-9 sm:ml-0">
                     <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>

@@ -1,4 +1,4 @@
-x-layouts.app title="Detail Riwayat Pasien">
+<x-layouts.app title="Detail Riwayat Pasien">
 
     {{-- Header --}}
     <div class="flex items-center gap-3 mb-6">

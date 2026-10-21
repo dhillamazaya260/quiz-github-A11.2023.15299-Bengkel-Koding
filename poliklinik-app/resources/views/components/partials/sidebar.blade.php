@@ -93,6 +93,18 @@
                     <i class="fas fa-clipboard-list w-4 text-center"></i>
                     Pendaftaran Periksa
                 </a>
+
+                <a href="{{ route('pasien.histori.index') }}"
+                   class="{{ $baseLink }} {{ request()->routeIs('pasien.histori.*') ? $active : $inactive }}">
+                    <i class="fas fa-clock-rotate-left w-4 text-center"></i>
+                    Riwayat Pendaftaran Poli
+                </a>
+
+                <a href="{{ route('pasien.riwayat') }}"
+                   class="{{ $baseLink }} {{ request()->routeIs('pasien.riwayat*', 'pasien.bayar') ? $active : $inactive }}">
+                    <i class="fas fa-file-invoice-dollar w-4 text-center"></i>
+                    Riwayat Pemeriksaan
+                </a>
             </div>
         @endif
 

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class NotifikasiController extends Controller
 {
     /**
-     * Tandai satu notifikasi sebagai sudah dibaca.
+     * Tandai satu notifikasi sebagai sudah dibaca, lalu buka halaman tujuannya.
      * Query dibatasi ke notifikasi milik user yang login, sehingga notifikasi
      * milik user lain menghasilkan 404 (tidak bisa dilihat/ditandai).
      */
@@ -16,6 +16,13 @@ class NotifikasiController extends Controller
     {
         $notifikasi = $request->user()->notifications()->findOrFail($id);
         $notifikasi->markAsRead();
+
+        $url = $notifikasi->data['url'] ?? null;
+
+        // Hanya path internal (diawali "/" tapi bukan "//") agar tidak jadi open redirect
+        if (is_string($url) && str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+            return redirect($url);
+        }
 
         return back();
     }
