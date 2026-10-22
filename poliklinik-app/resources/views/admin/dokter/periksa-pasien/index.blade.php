@@ -28,16 +28,27 @@
                                 </span>
                             </td>
                             <td class="px-5 py-3">
-                                <div class="flex justify-end">
+                                <div class="flex items-center justify-end">
                                     @if ($item->periksa)
                                         <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
                                             <i class="fas fa-circle-check"></i> Sudah Diperiksa
                                         </span>
-                                    @else
+                                    @elseif ($item->dilayani_pada)
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold mr-2">
+                                            <i class="fas fa-circle-dot"></i> Sedang Dilayani
+                                        </span>
                                         <a href="{{ route('periksa-pasien.create', $item->id) }}"
                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition">
-                                            <i class="fas fa-stethoscope"></i> Periksa
+                                            <i class="fas fa-prescription-bottle-medical"></i> Resepkan Obat
                                         </a>
+                                    @else
+                                        <form action="{{ route('periksa-pasien.layani', $item->id) }}" method="POST">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition">
+                                                <i class="fas fa-bullhorn"></i> Layani
+                                            </button>
+                                        </form>
                                     @endif
                                 </div>
                             </td>
@@ -50,6 +61,8 @@
                 </tbody>
             </table>
         </div>
+
+        @include('components.partials.paginasi', ['paginator' => $daftarPasien])
     </div>
 
     @push('scripts')

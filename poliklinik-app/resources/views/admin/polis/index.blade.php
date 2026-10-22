@@ -89,6 +89,8 @@
                 </table>
             </div>
 
+            @include('components.partials.paginasi', ['paginator' => $polis])
+
         </div>
     </div>
 

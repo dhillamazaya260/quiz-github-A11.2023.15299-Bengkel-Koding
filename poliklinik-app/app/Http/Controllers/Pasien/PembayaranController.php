@@ -18,7 +18,9 @@ class PembayaranController extends Controller
         $riwayat = $this->periksaMilikPasien()
             ->with('daftarPoli.jadwalPeriksa.dokter.poli')
             ->orderByDesc('tgl_periksa')
-            ->get();
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.pasien.riwayat', compact('riwayat'));
     }

@@ -13,7 +13,11 @@ class PasienController extends Controller
 {
     public function index()
     {
-        $pasiens = User::where('role', 'pasien')->get();
+        $pasiens = User::where('role', 'pasien')
+            ->orderBy('id')
+            ->paginate(10)
+            ->withQueryString();
+
         return view('admin.pasien.index', compact('pasiens'));
     }
 

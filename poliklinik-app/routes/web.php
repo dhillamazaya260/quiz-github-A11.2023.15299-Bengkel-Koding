@@ -80,6 +80,7 @@ Route::middleware(['auth', 'role:dokter'])->prefix('dokter')->group(function () 
 
     Route::get('/periksa-pasien', [PeriksaPasienController::class, 'index'])->name('periksa-pasien.index');
     Route::post('/periksa-pasien', [PeriksaPasienController::class, 'store'])->name('periksa-pasien.store');
+    Route::post('/periksa-pasien/{id}/layani', [PeriksaPasienController::class, 'layani'])->name('periksa-pasien.layani');
     Route::get('/periksa-pasien/{id}', [PeriksaPasienController::class, 'create'])->name('periksa-pasien.create');
 
     Route::get('/riwayat-pasien/export', [RiwayatPasienController::class, 'export'])->name('riwayat-pasien.export');

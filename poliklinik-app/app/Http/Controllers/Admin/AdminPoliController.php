@@ -10,7 +10,7 @@ class AdminPoliController extends Controller
 {
     public function index()
     {
-        $polis = Poli::all();
+        $polis = Poli::orderBy('id')->paginate(10)->withQueryString();
         return view('admin.polis.index', compact('polis'));
     }
 

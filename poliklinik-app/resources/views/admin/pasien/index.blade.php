@@ -111,6 +111,8 @@
                 </table>
             </div>
 
+            @include('components.partials.paginasi', ['paginator' => $pasiens])
+
         </div>
     </div>
 

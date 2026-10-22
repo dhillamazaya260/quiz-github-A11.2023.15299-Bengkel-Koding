@@ -65,6 +65,8 @@
                 </tbody>
             </table>
         </div>
+
+        @include('components.partials.paginasi', ['paginator' => $jadwals])
     </div>
 
 </x-layouts.app>

@@ -23,7 +23,8 @@ class PeriksaPasienController extends Controller
             ->whereHas('jadwalPeriksa', fn ($q) => $q->where('id_dokter', Auth::id()))
             ->orderBy('id_jadwal')
             ->orderBy('no_antrian')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.dokter.periksa-pasien.index', compact('daftarPasien'));
     }
@@ -38,12 +39,55 @@ class PeriksaPasienController extends Controller
                 ->with('error', 'Pasien ini sudah diperiksa.');
         }
 
+        if (! $daftarPoli->dilayani_pada) {
+            return redirect()
+                ->route('periksa-pasien.index')
+                ->with('error', 'Klik tombol "Layani" pada pasien ini terlebih dahulu.');
+        }
+
         return view('admin.dokter.periksa-pasien.create', [
             'obats'      => Obat::orderBy('nama_obat')->get(),
             'daftarPoli' => $daftarPoli,
             'id'         => $daftarPoli->id,
             'biayaJasa'  => Periksa::BIAYA_JASA_DOKTER,
         ]);
+    }
+
+    /**
+     * Tombol "Layani": tandai pasien ini sebagai yang sedang dilayani,
+     * lalu siarkan ke dashboard pasien lewat Reverb.
+     */
+    public function layani($id)
+    {
+        $daftarPoli = $this->daftarMilikDokter($id);
+
+        if ($daftarPoli->periksa) {
+            return redirect()
+                ->route('periksa-pasien.index')
+                ->with('error', 'Pasien ini sudah diperiksa.');
+        }
+
+        if (! $daftarPoli->dilayani_pada) {
+            // Hanya satu pasien yang boleh dilayani dalam satu jadwal pada satu waktu
+            $masihDilayani = DaftarPoli::where('id_jadwal', $daftarPoli->id_jadwal)
+                ->whereNotNull('dilayani_pada')
+                ->whereDoesntHave('periksa')
+                ->exists();
+
+            if ($masihDilayani) {
+                return redirect()
+                    ->route('periksa-pasien.index')
+                    ->with('error', 'Selesaikan pemeriksaan pasien yang sedang dilayani terlebih dahulu.');
+            }
+
+            $daftarPoli->update(['dilayani_pada' => now()]);
+        }
+
+        $this->siarkanAntrian($daftarPoli->id_jadwal, $daftarPoli->jadwalPeriksa->hari);
+
+        return redirect()
+            ->route('periksa-pasien.create', $daftarPoli->id)
+            ->with('success', 'Pasien nomor ' . $daftarPoli->no_antrian . ' sedang dilayani.');
     }
 
     public function store(Request $request)
@@ -64,30 +108,36 @@ class PeriksaPasienController extends Controller
                 ->with('error', 'Pasien ini sudah diperiksa.');
         }
 
-$obatIds = $data['obat'] ?? [];
+        if (! $daftarPoli->dilayani_pada) {
+            return redirect()
+                ->route('periksa-pasien.index')
+                ->with('error', 'Klik tombol "Layani" pada pasien ini terlebih dahulu.');
+        }
 
-// Harga dihitung di server dari data obat, bukan dipercaya dari input form
-$obats     = Obat::whereIn('id', $obatIds)->get();
-$totalObat = (int) $obats->sum('harga');
+        $obatIds = $data['obat'] ?? [];
 
-DB::transaction(function () use ($daftarPoli, $data, $obats, $totalObat) {
-    $periksa = Periksa::create([
-        'id_daftar_poli' => $daftarPoli->id,
-        'tgl_periksa'    => now(),
-        'catatan'        => $data['catatan'] ?? null,
-        'biaya_jasa'     => Periksa::BIAYA_JASA_DOKTER,
-        'biaya_periksa'  => Periksa::BIAYA_JASA_DOKTER + $totalObat,
-    ]);
+        // Harga dihitung di server dari data obat, bukan dipercaya dari input form
+        $obats     = Obat::whereIn('id', $obatIds)->get();
+        $totalObat = (int) $obats->sum('harga');
 
-    // Simpan harga obat saat ini sebagai snapshot
-    foreach ($obats as $obat) {
-        DetailPeriksa::create([
-            'id_periksa' => $periksa->id,
-            'id_obat'    => $obat->id,
-            'harga'      => $obat->harga,
-        ]);
-    }
-});
+        DB::transaction(function () use ($daftarPoli, $data, $obats, $totalObat) {
+            $periksa = Periksa::create([
+                'id_daftar_poli' => $daftarPoli->id,
+                'tgl_periksa'    => now(),
+                'catatan'        => $data['catatan'] ?? null,
+                'biaya_jasa'     => Periksa::BIAYA_JASA_DOKTER,
+                'biaya_periksa'  => Periksa::BIAYA_JASA_DOKTER + $totalObat,
+            ]);
+
+            // Simpan harga obat saat ini sebagai snapshot
+            foreach ($obats as $obat) {
+                DetailPeriksa::create([
+                    'id_periksa' => $periksa->id,
+                    'id_obat'    => $obat->id,
+                    'harga'      => $obat->harga,
+                ]);
+            }
+        });
 
         // Setelah transaksi tersimpan, kabari semua dashboard pasien lewat Reverb
         $this->siarkanAntrian($daftarPoli->id_jadwal, $daftarPoli->jadwalPeriksa->hari);
@@ -101,15 +151,13 @@ DB::transaction(function () use ($daftarPoli, $data, $obats, $totalObat) {
     }
 
     /**
-     * Kirim nomor yang sedang dilayani pada jadwal ini (nomor terbesar yang sudah diperiksa).
+     * Kirim nomor yang sedang dilayani pada jadwal ini (lihat DaftarPoli::nomorDilayani).
      * Kegagalan WebSocket (mis. Reverb belum jalan) tidak boleh membatalkan hasil periksa.
      */
     private function siarkanAntrian(int $idJadwal, string $hari): void
     {
         try {
-            $nomorDilayani = (int) DaftarPoli::where('id_jadwal', $idJadwal)
-                ->whereHas('periksa')
-                ->max('no_antrian');
+            $nomorDilayani = DaftarPoli::nomorDilayani($idJadwal);
 
             $hariIni = $hari === now()->locale('id')->isoFormat('dddd');
 

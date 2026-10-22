@@ -29,20 +29,23 @@ class DashboardController extends Controller
             ->get();
 
         // ---- Antrian hari ini: pasien jadwal hari ini yang belum diperiksa, urut nomor antrian ----
-        $antrianHariIni = DaftarPoli::with(['pasien', 'jadwalPeriksa'])
+        $antrianQuery = fn () => DaftarPoli::with(['pasien', 'jadwalPeriksa'])
             ->whereHas('jadwalPeriksa', fn ($q) => $q
                 ->where('id_dokter', $dokter->id)
                 ->where('hari', $hariIni))
             ->whereDoesntHave('periksa')
             ->orderBy('id_jadwal')
-            ->orderBy('no_antrian')
-            ->get();
+            ->orderBy('no_antrian');
 
-        $berikutnya = $antrianHariIni->first();
+        // Tabel antrian dipaginasi (5 per halaman, parameter ?antrian=)
+        $antrianHariIni = $antrianQuery()->paginate(5, ['*'], 'antrian')->withQueryString();
+
+        // Pasien berikutnya selalu yang pertama di seluruh antrian, bukan di halaman yang tampil
+        $berikutnya = $antrianQuery()->first();
 
         // ---- Statistik ----
         $stat = [
-            'menunggu_hari_ini' => $antrianHariIni->count(),
+            'menunggu_hari_ini' => $antrianHariIni->total(),
             'menunggu_total'    => DaftarPoli::whereHas('jadwalPeriksa', fn ($q) => $q->where('id_dokter', $dokter->id))
                 ->whereDoesntHave('periksa')
                 ->count(),

@@ -14,7 +14,12 @@ class DokterController extends Controller
 {
     public function index()
     {
-        $dokters = User::where('role', 'dokter')->with('poli')->get();
+        $dokters = User::where('role', 'dokter')
+            ->with('poli')
+            ->orderBy('id')
+            ->paginate(10)
+            ->withQueryString();
+
         return view('admin.dokter.index', compact('dokters'));
     }
 

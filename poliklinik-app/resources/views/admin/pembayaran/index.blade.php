@@ -90,6 +90,8 @@
                     </tbody>
                 </table>
             </div>
+
+            @include('components.partials.paginasi', ['paginator' => $pembayarans])
         </div>
     </div>
 

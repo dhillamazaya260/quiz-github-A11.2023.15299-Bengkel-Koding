@@ -36,10 +36,8 @@ class PoliController extends Controller
         if ($antrianAktif) {
             $jadwal = $antrianAktif->jadwalPeriksa;
 
-            // Nomor sedang dilayani = max no_antrian di jadwal ini yang sudah periksa
-            $nomorDilayani = DaftarPoli::where('id_jadwal', $jadwal->id)
-                ->whereHas('periksa')
-                ->max('no_antrian') ?? 0;
+            // Nomor sedang dilayani (pasien yang ditekan "Layani" oleh dokter, atau nomor terakhir selesai)
+            $nomorDilayani = DaftarPoli::nomorDilayani($jadwal->id);
 
             $bannerData = [
                 'id_daftar'      => $antrianAktif->id,
@@ -58,16 +56,14 @@ class PoliController extends Controller
         // 2. Semua jadwal poliklinik (semua hari) untuk tabel referensi
         //    Nomor dilayani hanya relevan untuk jadwal hari ini
         // ------------------------------------------------------------------
-        $semuaJadwal = JadwalPeriksa::with(['dokter.poli', 'daftarPolis.periksa'])
+        $semuaJadwal = JadwalPeriksa::with(['dokter.poli'])
             ->orderByRaw("FIELD(hari,'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu')")
             ->get()
             ->map(function ($jadwal) use ($hariIni) {
                 // Hanya hitung nomor_dilayani untuk jadwal hari ini
                 $nomorDilayani = 0;
                 if ($jadwal->hari === $hariIni) {
-                    $nomorDilayani = $jadwal->daftarPolis
-                        ->filter(fn($d) => $d->periksa !== null)
-                        ->max('no_antrian') ?? 0;
+                    $nomorDilayani = DaftarPoli::nomorDilayani($jadwal->id);
                 }
 
                 return [
@@ -86,7 +82,8 @@ class PoliController extends Controller
     }
 
     /**
-     * JSON endpoint untuk live update antrian (polling AJAX setiap 5 detik).
+     * JSON endpoint untuk sinkronisasi antrian (dipanggil saat WebSocket connect,
+     * setelah event masuk, dan sebagai cadangan polling 5 detik).
      * Mengembalikan nomor_dilayani untuk semua jadwal hari ini.
      */
     public function antrianStatus()
@@ -95,17 +92,12 @@ class PoliController extends Controller
         $idPasien = Auth::id();
 
         // Nomor dilayani per jadwal hari ini
-        $jadwals = JadwalPeriksa::with(['daftarPolis.periksa'])
-            ->where('hari', $hariIni)
+        $jadwals = JadwalPeriksa::where('hari', $hariIni)
             ->get()
-            ->map(function ($jadwal) use ($idPasien) {
-                $nomorDilayani = $jadwal->daftarPolis
-                    ->filter(fn($d) => $d->periksa !== null)
-                    ->max('no_antrian') ?? 0;
-
+            ->map(function ($jadwal) {
                 return [
                     'id_jadwal'      => $jadwal->id,
-                    'nomor_dilayani' => (int) $nomorDilayani,
+                    'nomor_dilayani' => DaftarPoli::nomorDilayani($jadwal->id),
                 ];
             });
 
@@ -117,22 +109,19 @@ class PoliController extends Controller
 
         $bannerUpdate = null;
         if ($antrianAktif) {
-            $jadwalId      = $antrianAktif->jadwalPeriksa->id;
-            $nomorDilayani = DaftarPoli::where('id_jadwal', $jadwalId)
-                ->whereHas('periksa')
-                ->max('no_antrian') ?? 0;
+            $jadwalId = $antrianAktif->jadwalPeriksa->id;
 
             $bannerUpdate = [
                 'id_jadwal'      => $jadwalId,
                 'antrian_saya'   => $antrianAktif->no_antrian,
-                'nomor_dilayani' => (int) $nomorDilayani,
+                'nomor_dilayani' => DaftarPoli::nomorDilayani($jadwalId),
             ];
         }
 
         return response()->json([
-            'timestamp'    => now()->toISOString(),
-            'jadwals'      => $jadwals->keyBy('id_jadwal'),
-            'banner'       => $bannerUpdate,
+            'timestamp' => now()->toISOString(),
+            'jadwals'   => $jadwals->keyBy('id_jadwal'),
+            'banner'    => $bannerUpdate,
         ]);
     }
 

@@ -66,6 +66,8 @@
                     </tbody>
                 </table>
             </div>
+
+            @include('components.partials.paginasi', ['paginator' => $riwayat])
         </div>
     </div>
 
@@ -96,12 +98,12 @@
                 </p>
 
                 {{-- Rincian tagihan --}}
-<div class="rounded-xl border border-slate-200 overflow-hidden mb-3">
-    @include('components.partials.rincian-biaya', ['periksa' => $periksa, 'compact' => true])
-</div>
-<div class="flex justify-end mb-4">
-    <span class="badge {{ $periksa->status_bayar_badge }}">{{ $periksa->status_bayar_label }}</span>
-</div>
+                <div class="rounded-xl border border-slate-200 overflow-hidden mb-3">
+                    @include('components.partials.rincian-biaya', ['periksa' => $periksa, 'compact' => true])
+                </div>
+                <div class="flex justify-end mb-4">
+                    <span class="badge {{ $periksa->status_bayar_badge }}">{{ $periksa->status_bayar_label }}</span>
+                </div>
 
                 @if ($belumBayar)
                     {{-- ===== Form upload bukti bayar ===== --}}

@@ -19,7 +19,10 @@ class RiwayatPasienController extends Controller
             'daftarPoli.pasien',
             'daftarPoli.jadwalPeriksa.dokter',
             'detailPeriksas.obat'
-        ])->orderBy('tgl_periksa', 'desc')->get();
+        ])->orderBy('tgl_periksa', 'desc')
+          ->orderBy('id', 'desc')
+          ->paginate(10)
+          ->withQueryString();
 
         return view('admin.dokter.riwayat-pasien.index', compact('riwayatPasien'));
     }

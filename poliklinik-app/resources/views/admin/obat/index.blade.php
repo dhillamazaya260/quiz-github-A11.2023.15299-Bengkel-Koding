@@ -109,6 +109,8 @@
                 </table>
             </div>
 
+            @include('components.partials.paginasi', ['paginator' => $obats])
+
         </div>
     </div>
 

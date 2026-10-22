@@ -93,6 +93,8 @@
                     </tbody>
                 </table>
             </div>
+
+            @include('components.partials.paginasi', ['paginator' => $riwayat])
         </div>
     </div>
 

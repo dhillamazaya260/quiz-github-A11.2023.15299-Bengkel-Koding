@@ -15,7 +15,8 @@ class RiwayatPendaftaranController extends Controller
             ->where('id_pasien', Auth::id())
             ->orderByDesc('created_at')
             ->orderByDesc('id') // pembeda jika dua pendaftaran dibuat di detik yang sama
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.pasien.histori.index', compact('riwayat'));
     }

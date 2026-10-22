@@ -18,7 +18,8 @@ class JadwalPeriksaController extends Controller
         $jadwals = JadwalPeriksa::where('id_dokter', Auth::id())
             ->orderByRaw("FIELD(hari, 'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu')")
             ->orderBy('jam_mulai')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.dokter.jadwal-periksa.index', compact('jadwals'));
     }

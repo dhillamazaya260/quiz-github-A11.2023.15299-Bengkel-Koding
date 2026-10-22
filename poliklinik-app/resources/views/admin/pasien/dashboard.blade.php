@@ -197,7 +197,7 @@
                         <span class="text-yellow-300">Antrian belum dimulai, harap bersiap di lokasi.</span>
                     @elseif($selisihBanner <= 0)
                         <i class="fas fa-check-circle text-green-400"></i>
-                        <span class="text-green-300">Giliran Anda sudah tiba atau sedang diperiksa!</span>
+                        <span class="text-green-300">Giliran Anda sudah tiba!</span>
                     @elseif($selisihBanner == 1)
                         <i class="fas fa-bell text-green-400 animate-bounce"></i>
                         <span class="text-green-300"><strong>Giliran Anda sudah tiba!</strong> Silakan menuju ruang periksa.</span>
@@ -442,7 +442,7 @@
                     @if($bannerData)
                     <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-600">
                         <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                        Baris disorot = jadwal antrian Anda
+                        Antrian Anda
                     </span>
                     @endif
                 </div>

@@ -16,10 +16,20 @@
                     (antrian #{{ $berikutnya->no_antrian }})
                 </span>
             </div>
-            <a href="{{ route('periksa-pasien.create', $berikutnya->id) }}"
-               class="btn btn-sm bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg shrink-0">
-                Periksa sekarang
-            </a>
+            @if ($berikutnya->dilayani_pada)
+                <a href="{{ route('periksa-pasien.create', $berikutnya->id) }}"
+                   class="btn btn-sm bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg shrink-0">
+                    Resepkan obat
+                </a>
+            @else
+                <form action="{{ route('periksa-pasien.layani', $berikutnya->id) }}" method="POST" class="shrink-0">
+                    @csrf
+                    <button type="submit"
+                            class="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white border-none rounded-lg">
+                        Layani sekarang
+                    </button>
+                </form>
+            @endif
         </div>
     @endif
 
@@ -73,10 +83,20 @@
                                     <td class="px-6 py-3">{{ $antri->pasien->nama ?? '-' }}</td>
                                     <td class="px-6 py-3 text-slate-500">{{ $antri->keluhan }}</td>
                                     <td class="px-6 py-3 text-right">
-                                        <a href="{{ route('periksa-pasien.create', $antri->id) }}"
-                                           class="btn btn-sm bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg">
-                                            Periksa
-                                        </a>
+                                        @if ($antri->dilayani_pada)
+                                            <a href="{{ route('periksa-pasien.create', $antri->id) }}"
+                                               class="btn btn-sm bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg">
+                                                Resepkan Obat
+                                            </a>
+                                        @else
+                                            <form action="{{ route('periksa-pasien.layani', $antri->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit"
+                                                        class="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white border-none rounded-lg">
+                                                    Layani
+                                                </button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -87,6 +107,8 @@
                         </tbody>
                     </table>
                 </div>
+
+                @include('components.partials.paginasi', ['paginator' => $antrianHariIni])
             </div>
         </div>
 

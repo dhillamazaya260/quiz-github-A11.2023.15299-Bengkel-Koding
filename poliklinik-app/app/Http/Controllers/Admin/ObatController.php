@@ -12,7 +12,7 @@ class ObatController extends Controller
 {
     public function index()
     {
-        $obats = Obat::orderBy('nama_obat')->get();
+        $obats = Obat::orderBy('nama_obat')->paginate(10)->withQueryString();
 
         return view('admin.obat.index', compact('obats'));
     }
