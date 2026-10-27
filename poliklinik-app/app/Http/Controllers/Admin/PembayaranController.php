@@ -1,62 +1,62 @@
 <?php
 
-namespace App\Http\Controllers\Pasien;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Periksa;
-use App\Notifications\PembayaranDiunggah;
+use App\Notifications\PembayaranDitolak;
+use App\Notifications\PembayaranDiverifikasi;
+use App\Support\Notifier;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PembayaranController extends Controller
 {
-    /** Riwayat pemeriksaan milik pasien yang login + status pembayarannya. */
-    public function index()
+    /** Daftar semua pembayaran + filter status (tab), terbaru di atas. */
+    public function index(Request $request)
     {
-        $riwayat = $this->periksaMilikPasien()
-            ->with('daftarPoli.jadwalPeriksa.dokter.poli')
+        $statusValid = [
+            Periksa::BAYAR_MENUNGGU,
+            Periksa::BAYAR_BELUM,
+            Periksa::BAYAR_LUNAS,
+        ];
+
+        $filter = $request->query('status');
+        $filter = in_array($filter, $statusValid, true) ? $filter : 'semua';
+
+        $pembayarans = Periksa::with('daftarPoli.pasien', 'daftarPoli.jadwalPeriksa.dokter.poli', 'detailPeriksas.obat')
+            ->when($filter !== 'semua', fn ($q) => $q->where('status_bayar', $filter))
             ->orderByDesc('tgl_periksa')
             ->orderByDesc('id')
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.pasien.riwayat', compact('riwayat'));
+        // Jumlah per status untuk badge di tab: ['belum' => 3, 'lunas' => 5, ...]
+        $jumlah = Periksa::select('status_bayar', DB::raw('count(*) as total'))
+            ->groupBy('status_bayar')
+            ->pluck('total', 'status_bayar');
+
+        return view('admin.pembayaran.index', compact('pembayarans', 'jumlah', 'filter'));
     }
 
-    /** Upload bukti bayar. Hanya boleh sekali (status harus 'belum'). */
-    public function bayar(Request $request, $id)
+    /** Admin mengonfirmasi bukti bayar -> status LUNAS. */
+    public function verifikasi($id)
     {
-        // 404 jika pemeriksaan bukan milik pasien ini
-        $periksa = $this->periksaMilikPasien()
-            ->with('daftarPoli.pasien', 'daftarPoli.jadwalPeriksa.dokter')
-            ->findOrFail($id);
+        $periksa = Periksa::with('daftarPoli.pasien')->findOrFail($id);
 
-        $request->validate([
-            'bukti_bayar' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-        ], [
-            'bukti_bayar.required' => 'Pilih file bukti pembayaran terlebih dahulu.',
-            'bukti_bayar.image'    => 'Bukti pembayaran harus berupa gambar.',
-            'bukti_bayar.mimes'    => 'Format bukti pembayaran harus jpg, jpeg, atau png.',
-            'bukti_bayar.max'      => 'Ukuran bukti pembayaran maksimal 2 MB.',
-        ]);
-
-        $path = $request->file('bukti_bayar')->store('bukti-bayar', 'local');
-
-        // Baris dikunci: hanya SATU request yang bisa mengubah status belum -> menunggu,
+        // Baris dikunci: hanya SATU request yang bisa mengubah menunggu -> lunas,
         // sehingga klik ganda tidak menghasilkan notifikasi ganda.
-        $berhasil = DB::transaction(function () use ($periksa, $path) {
+        $berhasil = DB::transaction(function () use ($periksa) {
             $terkunci = Periksa::lockForUpdate()->find($periksa->id);
 
-            if ($terkunci->status_bayar !== Periksa::BAYAR_BELUM) {
+            if ($terkunci->status_bayar !== Periksa::BAYAR_MENUNGGU) {
                 return false;
             }
 
             $terkunci->update([
-                'status_bayar' => Periksa::BAYAR_MENUNGGU,
-                'bukti_bayar'  => $path,
-                'tgl_bayar'    => now(),
+                'status_bayar'      => Periksa::BAYAR_LUNAS,
+                'tgl_verifikasi'    => now(),
                 'catatan_penolakan' => null,
             ]);
 
@@ -64,19 +64,67 @@ class PembayaranController extends Controller
         });
 
         if (! $berhasil) {
-            Storage::disk('local')->delete($path);
-
-            return back()->with('error', 'Bukti pembayaran untuk pemeriksaan ini sudah pernah diunggah.');
+            return redirect()
+                ->route('pembayaran.index')
+                ->with('error', 'Pembayaran ini sudah diproses atau belum menunggu verifikasi.');
         }
 
-        // Dikirim sekali, hanya oleh request yang berhasil mengubah status.
-        $periksa->daftarPoli->jadwalPeriksa->dokter->notify(new PembayaranDiunggah($periksa));
+        Notifier::kirim($periksa->daftarPoli->pasien, new PembayaranDiverifikasi($periksa->fresh()));
 
-        return back()->with('success', 'Bukti pembayaran berhasil diunggah. Menunggu verifikasi admin.');
+        return redirect()
+            ->route('pembayaran.index')
+            ->with('success', 'Pembayaran berhasil dikonfirmasi sebagai LUNAS.');
     }
 
-    private function periksaMilikPasien()
+    /** Admin menolak bukti bayar -> status kembali "belum" agar pasien unggah ulang. */
+    public function tolak(Request $request, $id)
     {
-        return Periksa::whereHas('daftarPoli', fn ($q) => $q->where('id_pasien', Auth::id()));
+        $request->validate([
+            'alasan' => ['required', 'string', 'max:255'],
+        ], [
+            'alasan.required' => 'Alasan penolakan wajib diisi.',
+            'alasan.max'      => 'Alasan penolakan maksimal 255 karakter.',
+        ]);
+
+        $periksa = Periksa::with('daftarPoli.pasien')->findOrFail($id);
+        $alasan  = trim($request->input('alasan'));
+        $buktiLama = null;
+
+        $berhasil = DB::transaction(function () use ($periksa, $alasan, &$buktiLama) {
+            $terkunci = Periksa::lockForUpdate()->find($periksa->id);
+
+            if ($terkunci->status_bayar !== Periksa::BAYAR_MENUNGGU) {
+                return false;
+            }
+
+            $buktiLama = $terkunci->bukti_bayar;
+
+            $terkunci->update([
+                'status_bayar'      => Periksa::BAYAR_BELUM,
+                'bukti_bayar'       => null,
+                'tgl_bayar'         => null,
+                'tgl_verifikasi'    => null,
+                'catatan_penolakan' => $alasan,
+            ]);
+
+            return true;
+        });
+
+        if (! $berhasil) {
+            return redirect()
+                ->route('pembayaran.index')
+                ->with('error', 'Pembayaran ini sudah diproses atau belum menunggu verifikasi.');
+        }
+
+        // Hapus file bukti yang ditolak (pasien akan mengunggah yang baru)
+        if ($buktiLama) {
+            Storage::disk('local')->delete($buktiLama);
+        }
+
+        Notifier::kirim($periksa->daftarPoli->pasien, new PembayaranDitolak($periksa->fresh(), $alasan));
+
+        return redirect()
+            ->route('pembayaran.index')
+            ->with('success', 'Bukti pembayaran ditolak. Pasien diminta mengunggah ulang.');
     }
 }

@@ -17,10 +17,10 @@ class DaftarPoli extends Model
 
     /**
      * Nomor yang "Sedang Dilayani" pada sebuah jadwal.
-     *  1. Jika dokter sudah menekan tombol "Periksa" pada seorang pasien yang belum
-     *     selesai diperiksa -> nomor pasien itulah yang sedang dilayani.
-     *  2. Jika tidak ada (dokter belum memanggil siapa pun / baru selesai) ->
-     *     nomor terakhir yang sudah selesai diperiksa. 0 jika belum ada.
+     *
+     * Hanya pasien yang sudah diklik "Layani" oleh dokter dan belum selesai
+     * diperiksa yang dihitung. Jika tidak ada (dokter belum memanggil siapa pun,
+     * atau pasien terakhir baru selesai), hasilnya 0 dan view menampilkan "—".
      */
     public static function nomorDilayani(int $idJadwal): int
     {
@@ -29,13 +29,7 @@ class DaftarPoli extends Model
             ->whereDoesntHave('periksa')
             ->max('no_antrian');
 
-        if ($sedangDiperiksa !== null) {
-            return (int) $sedangDiperiksa;
-        }
-
-        return (int) static::where('id_jadwal', $idJadwal)
-            ->whereHas('periksa')
-            ->max('no_antrian');
+        return (int) ($sedangDiperiksa ?? 0);
     }
 
     public function pasien()

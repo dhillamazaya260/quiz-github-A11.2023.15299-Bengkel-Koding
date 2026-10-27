@@ -46,7 +46,7 @@
                                             @csrf
                                             <button type="submit"
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition">
-                                                <i class="fas fa-bullhorn"></i> Layani
+                                                <i class="fas fa-stethoscope"></i> Periksa
                                             </button>
                                         </form>
                                     @endif

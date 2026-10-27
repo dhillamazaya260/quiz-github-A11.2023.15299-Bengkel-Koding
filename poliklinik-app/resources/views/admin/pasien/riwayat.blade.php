@@ -50,6 +50,12 @@
                                                 class="btn btn-sm btn-ghost text-indigo-600 hover:text-indigo-800 rounded-lg">
                                             <i class="fas fa-receipt"></i> Detail
                                         </button>
+                                        @if ($periksa->status_bayar === \App\Models\Periksa::BAYAR_LUNAS)
+                                            <a href="{{ route('pasien.struk', $periksa->id) }}" target="_blank"
+                                               class="btn btn-sm bg-emerald-500 hover:bg-emerald-600 text-white border-none rounded-lg">
+                                                <i class="fas fa-print"></i> Struk
+                                            </a>
+                                        @endif
                                     @endif
                                 </td>
                             </tr>
@@ -185,6 +191,12 @@
                     @endif
 
                     <div class="modal-action mt-4">
+                        @if ($periksa->status_bayar === \App\Models\Periksa::BAYAR_LUNAS)
+                            <a href="{{ route('pasien.struk', $periksa->id) }}" target="_blank"
+                               class="btn bg-emerald-500 hover:bg-emerald-600 text-white border-none rounded-lg">
+                                <i class="fas fa-print"></i> Cetak Struk
+                            </a>
+                        @endif
                         <form method="dialog">
                             <button class="btn btn-ghost rounded-lg">Tutup</button>
                         </form>

@@ -1,17 +1,26 @@
-<x-layouts.app title="Riwayat Pasien">
+<x-layouts.app title="Data Dokter">
 
     {{-- Header --}}
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-slate-800">
-            Riwayat Pasien
+            Data Dokter
         </h2>
 
-        <a href="{{ route('riwayat-pasien.export') }}"
+        <div class="flex items-center gap-2 flex-wrap">
+        <a href="{{ route('dokter.export') }}"
            class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700
                   text-white rounded-xl text-sm font-semibold transition whitespace-nowrap">
             <i class="fas fa-file-excel text-sm"></i>
             Export Excel
         </a>
+        <a href="{{ route('dokter.create') }}" class="inline-flex items-center gap-2 px-5 py-2.5
+                  bg-primary hover:bg-primary/90
+                  text-white text-sm font-semibold
+                  rounded-xl transition">
+            <i class="fas fa-plus text-xs"></i>
+            Tambah Dokter
+        </a>
+        </div>
     </div>
 
     {{-- Card --}}
@@ -19,61 +28,86 @@
         <div class="card-body p-0">
 
             <div class="overflow-x-auto">
-                <table class="table table-zebra w-full">
+                <table class="table w-full">
 
-                    {{-- Head --}}
-                    <thead class="bg-slate-100 text-slate-500 text-xs uppercase tracking-wider">
+                    {{-- Table Head --}}
+                    <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wider">
                         <tr>
-                            <th class="px-6 py-4">No Antrian</th>
-                            <th class="px-6 py-4">Nama Pasien</th>
-                            <th class="px-6 py-4">Keluhan</th>
-                            <th class="px-6 py-4">Tanggal Periksa</th>
-                            <th class="px-6 py-4">Biaya</th>
+                            <th class="px-6 py-4">Nama Dokter</th>
+                            <th class="px-6 py-4">Email</th>
+                            <th class="px-6 py-4">No. KTP</th>
+                            <th class="px-6 py-4">No. HP</th>
+                            <th class="px-6 py-4">Alamat</th>
+                            <th class="px-6 py-4">Poli</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
                     </thead>
 
-                    {{-- Body --}}
-                    <tbody>
-                        @forelse($riwayatPasien as $riwayat)
-                        <tr class="hover:bg-slate-50 transition">
-
-                            <td class="px-6 py-4 text-slate-500">
-                                {{ $riwayat->daftarPoli->no_antrian }}
-                            </td>
+                    {{-- Table Body --}}
+                    <tbody class="text-sm text-slate-700">
+                        @forelse($dokters as $dokter)
+                        <tr class="border-t border-slate-100 hover:bg-slate-50 transition">
 
                             <td class="px-6 py-4 font-semibold text-slate-800">
-                                {{ $riwayat->daftarPoli->pasien->nama }}
+                                {{ $dokter->nama }}
                             </td>
 
-                            <td class="px-6 py-4 text-slate-500">
-                                {{ $riwayat->daftarPoli->keluhan }}
+                            <td class="px-6 py-4 text-slate-600">
+                                {{ $dokter->email }}
                             </td>
 
-                            <td class="px-6 py-4 text-slate-500">
-                                {{ \Carbon\Carbon::parse($riwayat->tgl_periksa)->format('d/m/Y') }}
+                            <td class="px-6 py-4 text-slate-600">
+                                {{ $dokter->no_ktp ?? '-' }}
                             </td>
 
-                            <td class="px-6 py-4 text-slate-500">
-                                Rp {{ number_format($riwayat->biaya_periksa, 0, ',', '.') }}
+                            <td class="px-6 py-4 text-slate-600">
+                                {{ $dokter->no_hp ?? '-' }}
+                            </td>
+
+                            <td class="px-6 py-4 text-slate-600">
+                                {{ $dokter->alamat ?? '-' }}
+                            </td>
+
+                            <td class="px-6 py-4 text-slate-600 whitespace-nowrap">
+                                {{ $dokter->poli->nama_poli ?? 'Belum Dipilih' }}
                             </td>
 
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('riwayat-pasien.show', $riwayat) }}"
-                                    class="btn btn-sm bg-blue-500 hover:bg-blue-600 text-white border-none rounded-lg px-4">
-                                    <i class="fas fa-eye"></i>
-                                    Detail
-                                </a>
+                                <div class="flex justify-end gap-2">
+
+                                    {{-- Edit --}}
+                                    <a href="{{ route('dokter.edit', $dokter->id) }}" class="inline-flex items-center gap-1 px-4 py-2
+                                              bg-amber-500 hover:bg-amber-600
+                                              text-white text-xs font-semibold
+                                              rounded-lg transition">
+                                        <i class="fas fa-pen text-xs"></i>
+                                        Edit
+                                    </a>
+
+                                    {{-- Delete --}}
+                                    <form action="{{ route('dokter.destroy', $dokter->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit"
+                                            onclick="return confirm('Yakin ingin menghapus dokter ini?')" class="inline-flex items-center gap-1 px-4 py-2
+                                                   bg-red-500 hover:bg-red-600
+                                                   text-white text-xs font-semibold
+                                                   rounded-lg transition">
+                                            <i class="fas fa-trash text-xs"></i>
+                                            Hapus
+                                        </button>
+                                    </form>
+
+                                </div>
                             </td>
 
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center py-14 text-slate-400">
-                                <div class="flex flex-col items-center justify-center gap-2">
-                                    <i class="fas fa-inbox text-3xl"></i>
-                                    <span>Belum ada riwayat pemeriksaan</span>
-                                </div>
+                            <td colspan="7" class="text-center py-12 text-slate-400">
+                                <i class="fas fa-inbox text-3xl mb-3 block"></i>
+                                Belum ada data dokter
                             </td>
                         </tr>
                         @endforelse
@@ -82,7 +116,7 @@
                 </table>
             </div>
 
-            @include('components.partials.paginasi', ['paginator' => $riwayatPasien])
+            @include('components.partials.paginasi', ['paginator' => $dokters])
 
         </div>
     </div>

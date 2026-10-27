@@ -243,6 +243,26 @@
         $urutanHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
         $daftarHari = collect($urutanHari)->filter(fn ($h) => $semuaJadwal->contains('hari', $h))->values();
         $hariIniNama = now()->locale('id')->isoFormat('dddd');
+        // Ikon & warna tiap poli (dicocokkan lewat kata kunci pada nama poli)
+        $poliStyle = function (string $nama): array {
+            $n = strtolower($nama);
+            $peta = [
+                'tht'       => ['fa-ear-listen',     '#fef3c7,#fde68a', '#b45309'],
+                'kandungan' => ['fa-person-pregnant', '#fce7f3,#fbcfe8', '#be185d'],
+                'mata'      => ['fa-eye',            '#d1fae5,#a7f3d0', '#047857'],
+                'gigi'      => ['fa-tooth',          '#cffafe,#a5f3fc', '#0e7490'],
+                'anak'      => ['fa-baby',           '#ffedd5,#fed7aa', '#c2410c'],
+                'jantung'   => ['fa-heart-pulse',    '#fee2e2,#fecaca', '#b91c1c'],
+                'saraf'     => ['fa-brain',          '#ede9fe,#ddd6fe', '#6d28d9'],
+                'tulang'    => ['fa-bone',           '#f1f5f9,#e2e8f0', '#475569'],
+                'paru'      => ['fa-lungs',          '#e0f2fe,#bae6fd', '#0369a1'],
+                'umum'      => ['fa-hospital',       '#e0e7ff,#c7d2fe', '#4338ca'],
+            ];
+            foreach ($peta as $kunci => $gaya) {
+                if (str_contains($n, $kunci)) return $gaya;
+            }
+            return ['fa-stethoscope', '#e0e7ff,#c7d2fe', '#4338ca']; // poli lain / baru
+        };
         $hariColors = [
             'Senin'  => ['#dbeafe', '#1d4ed8'],
             'Selasa' => ['#f0fdf4', '#15803d'],
@@ -299,10 +319,13 @@
                             @endforeach
                         </select>
 
-                        <select id="filterHari" class="select select-bordered md:col-span-3 w-full h-10 text-sm">
-                            <option value="">Semua Hari</option>
+                        {{-- Default: jadwal hari ini (jika ada). Pilih "Semua Hari" / hari lain untuk melihat jadwal lainnya --}}
+                        @php $adaJadwalHariIni = $daftarHari->contains($hariIniNama); @endphp
+                        <select id="filterHari" class="select select-bordered md:col-span-3 w-full h-10 text-sm"
+                                data-default="{{ $adaJadwalHariIni ? $hariIniNama : '' }}">
+                            <option value="" {{ $adaJadwalHariIni ? '' : 'selected' }}>Semua Hari</option>
                             @foreach($daftarHari as $h)
-                                <option value="{{ $h }}">{{ $h }}{{ $h === $hariIniNama ? ' (hari ini)' : '' }}</option>
+                                <option value="{{ $h }}" {{ $h === $hariIniNama ? 'selected' : '' }}>{{ $h }}{{ $h === $hariIniNama ? ' (hari ini)' : '' }}</option>
                             @endforeach
                         </select>
 
@@ -323,7 +346,7 @@
                                 <th class="py-3 px-5 font-semibold text-left">Dokter</th>
                                 <th class="py-3 px-5 font-semibold text-left">Hari</th>
                                 <th class="py-3 px-5 font-semibold text-left">Jam Periksa</th>
-                                <th class="py-3 px-5 font-semibold text-center">Sedang Dilayani</th>
+                                <th class="py-3 px-5 font-semibold text-center whitespace-nowrap">Sedang Dilayani</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -331,6 +354,7 @@
                             @php
                                 $isMyJadwal = $bannerData && $bannerData['id_jadwal'] == $jadwal['id'];
                                 $hc = $hariColors[$jadwal['hari']] ?? ['#f1f5f9', '#475569'];
+                                $ps = $poliStyle($jadwal['poli']);
                             @endphp
                             <tr class="baris-jadwal border-t border-slate-100 transition-colors duration-150 group
                                        {{ $isMyJadwal ? 'bg-indigo-50/60' : 'hover:bg-slate-50/80' }}"
@@ -353,10 +377,10 @@
                                 <td class="py-3.5 px-5">
                                     <div class="flex items-center gap-2.5">
                                         <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                                             style="background: linear-gradient(135deg,#e0e7ff,#c7d2fe);">
-                                            <i class="fas fa-hospital text-indigo-600 text-xs"></i>
+                                             style="background: linear-gradient(135deg,{{ $ps[1] }});">
+                                            <i class="fas {{ $ps[0] }} text-xs" style="color: {{ $ps[2] }};"></i>
                                         </div>
-                                        <span class="font-semibold text-slate-700">{{ $jadwal['poli'] }}</span>
+                                        <span class="font-semibold text-slate-700 whitespace-nowrap">{{ $jadwal['poli'] }}</span>
                                     </div>
                                 </td>
 
@@ -373,20 +397,22 @@
 
                                 {{-- Hari --}}
                                 <td class="py-3.5 px-5">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-                                          style="background:{{ $hc[0] }}; color:{{ $hc[1] }};">
-                                        {{ $jadwal['hari'] }}
-                                    </span>
-                                    @if($jadwal['is_hari_ini'])
-                                        <span class="ml-1 text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200">
-                                            Hari Ini
+                                    <div class="flex items-center gap-1.5 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                                              style="background:{{ $hc[0] }}; color:{{ $hc[1] }};">
+                                            {{ $jadwal['hari'] }}
                                         </span>
-                                    @endif
+                                        @if($jadwal['is_hari_ini'])
+                                            <span class="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200">
+                                                Hari Ini
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
 
                                 {{-- Jam Periksa --}}
                                 <td class="py-3.5 px-5">
-                                    <div class="flex items-center gap-1.5 text-slate-600">
+                                    <div class="flex items-center gap-1.5 text-slate-600 whitespace-nowrap">
                                         <i class="fas fa-clock text-slate-400 text-xs"></i>
                                         <span class="font-medium">{{ $jadwal['jam_mulai'] }}</span>
                                         <span class="text-slate-400">–</span>
@@ -477,6 +503,10 @@
         const PER_HALAMAN = 8;
         let halaman = 1;
 
+        // Filter hari bawaan = hari ini (kosong = semua hari jika hari ini tidak ada jadwal)
+        const HARI_DEFAULT = selHari.dataset.default || '';
+        selHari.value = HARI_DEFAULT;
+
         // Abaikan huruf besar/kecil dan aksen supaya pencarian lebih longgar
         const norm = (s) => (s || '').toString().toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -531,7 +561,7 @@
         btnPrev.addEventListener('click', () => { if (halaman > 1) { halaman--; render(); } });
         btnNext.addEventListener('click', () => { halaman++; render(); });
         btnReset.addEventListener('click', () => {
-            cari.value = ''; selPoli.value = ''; selHari.value = '';
+            cari.value = ''; selPoli.value = ''; selHari.value = HARI_DEFAULT;
             ubahFilter();
         });
 

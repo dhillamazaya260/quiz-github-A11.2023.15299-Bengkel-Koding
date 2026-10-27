@@ -21,8 +21,8 @@ class PeriksaPasienController extends Controller
     {
         $daftarPasien = DaftarPoli::with(['pasien', 'jadwalPeriksa', 'periksa'])
             ->whereHas('jadwalPeriksa', fn ($q) => $q->where('id_dokter', Auth::id()))
-            ->orderBy('id_jadwal')
-            ->orderBy('no_antrian')
+            ->orderByDesc('created_at') // antrian terbaru di atas
+            ->orderByDesc('id')         // pembeda jika dibuat di detik yang sama
             ->paginate(10)
             ->withQueryString();
 

@@ -27,9 +27,9 @@ class PembayaranDiverifikasi extends Notification
         return [
             'jenis'      => 'pembayaran_diverifikasi',
             'judul'      => 'Pembayaran lunas',
-            'pesan'      => "Pembayaran Anda sebesar Rp {$biaya} untuk pemeriksaan tanggal {$tanggal} telah diverifikasi admin dan dinyatakan LUNAS.",
+            'pesan'      => "Pembayaran Anda sebesar Rp {$biaya} untuk pemeriksaan tanggal {$tanggal} telah diverifikasi admin dan dinyatakan LUNAS. Struk pembayaran sudah bisa dicetak.",
             'periksa_id' => $this->periksa->id,
-            'url'        => route('pasien.riwayat', [], false),
+            'url'        => route('pasien.struk', $this->periksa->id, false),
         ];
     }
 }

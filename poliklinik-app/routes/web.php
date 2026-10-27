@@ -103,4 +103,7 @@ Route::middleware(['auth', 'role:pasien'])->prefix('pasien')->group(function () 
     // Riwayat pemeriksaan + pembayaran (pop-up)
     Route::get('/riwayat', [PasienPembayaranController::class, 'index'])->name('pasien.riwayat');
     Route::post('/riwayat/{id}/bayar', [PasienPembayaranController::class, 'bayar'])->name('pasien.bayar');
+
+    // Struk pembayaran (hanya untuk pembayaran yang sudah diverifikasi / lunas)
+    Route::get('/riwayat/{id}/struk', [PasienPembayaranController::class, 'struk'])->name('pasien.struk');
 });

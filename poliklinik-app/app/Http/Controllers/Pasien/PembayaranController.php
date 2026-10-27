@@ -75,6 +75,23 @@ class PembayaranController extends Controller
         return back()->with('success', 'Bukti pembayaran berhasil diunggah. Menunggu verifikasi admin.');
     }
 
+    /** Struk pembayaran yang bisa dicetak. Hanya untuk pembayaran yang sudah LUNAS. */
+    public function struk($id)
+    {
+        // 404 jika pemeriksaan bukan milik pasien ini
+        $periksa = $this->periksaMilikPasien()
+            ->with('daftarPoli.pasien', 'daftarPoli.jadwalPeriksa.dokter.poli', 'detailPeriksas.obat')
+            ->findOrFail($id);
+
+        if ($periksa->status_bayar !== Periksa::BAYAR_LUNAS) {
+            return redirect()
+                ->route('pasien.riwayat')
+                ->with('error', 'Struk hanya tersedia setelah pembayaran diverifikasi admin.');
+        }
+
+        return view('admin.pasien.struk', compact('periksa'));
+    }
+
     private function periksaMilikPasien()
     {
         return Periksa::whereHas('daftarPoli', fn ($q) => $q->where('id_pasien', Auth::id()));
