@@ -6,6 +6,7 @@ use App\Exports\DokterExport;
 use App\Http\Controllers\Controller;
 use App\Models\Poli;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
@@ -102,7 +103,17 @@ class DokterController extends Controller
 
     public function destroy(User $dokter)
     {
-        $dokter->delete();
+        try {
+            $dokter->delete();
+        } catch (QueryException $e) {
+            // 23000 = pelanggaran foreign key (dokter punya jadwal / riwayat pemeriksaan)
+            if ((string) $e->getCode() !== '23000') {
+                throw $e;
+            }
+
+            return redirect()->route('dokter.index')
+                ->with('error', 'Dokter tidak dapat dihapus karena sudah memiliki jadwal atau riwayat pemeriksaan.');
+        }
 
         return redirect()->route('dokter.index')
             ->with('message', 'Data Dokter Berhasil dihapus')

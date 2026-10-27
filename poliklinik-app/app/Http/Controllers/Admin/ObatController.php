@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\ObatExport;
 use App\Http\Controllers\Controller;
 use App\Models\Obat;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -48,7 +49,17 @@ class ObatController extends Controller
 
     public function destroy(Obat $obat)
     {
-        $obat->delete();
+        try {
+            $obat->delete();
+        } catch (QueryException $e) {
+            // 23000 = pelanggaran foreign key (obat sudah pernah diresepkan)
+            if ((string) $e->getCode() !== '23000') {
+                throw $e;
+            }
+
+            return redirect()->route('obat.index')
+                ->with('error', 'Obat tidak dapat dihapus karena sudah tercatat di resep pasien. Ubah stoknya menjadi 0 bila sudah tidak dipakai.');
+        }
 
         return redirect()->route('obat.index')->with('success', 'Data obat berhasil dihapus.');
     }

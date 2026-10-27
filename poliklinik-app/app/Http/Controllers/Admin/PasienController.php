@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\PasienExport;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
@@ -95,7 +96,19 @@ class PasienController extends Controller
 
     public function destroy(User $pasien)
     {
-        $pasien->delete();
+        try {
+            $pasien->delete();
+        } catch (QueryException $e) {
+            // 23000 = pelanggaran foreign key (pasien punya riwayat pendaftaran / pemeriksaan)
+            if ((string) $e->getCode() !== '23000') {
+                throw $e;
+            }
+
+            return redirect()
+                ->route('pasien.index')
+                ->with('error', 'Pasien tidak dapat dihapus karena sudah memiliki riwayat pendaftaran atau pemeriksaan.');
+        }
+
         return redirect()
             ->route('pasien.index')
             ->with('message', 'Data Pasien berhasil dihapus')

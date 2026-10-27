@@ -7,10 +7,20 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    /** Batas percobaan login gagal per kombinasi email + IP. */
+    private const LOGIN_MAKS_PERCOBAAN = 5;
+    private const LOGIN_JEDA_DETIK     = 60;
+
+    /** Batas pendaftaran per IP (longgar, karena banyak orang bisa berbagi satu IP kampus). */
+    private const REGISTER_MAKS_PERCOBAAN = 10;
+    private const REGISTER_JEDA_DETIK     = 600;
+
     public function showLogin(): View
     {
         return view('auth.login');
@@ -23,7 +33,18 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $kunci = $this->kunciLogin($request);
+
+        if (RateLimiter::tooManyAttempts($kunci, self::LOGIN_MAKS_PERCOBAAN)) {
+            $detik = RateLimiter::availableIn($kunci);
+
+            return back()->withErrors([
+                'email' => "Terlalu banyak percobaan login. Coba lagi dalam {$detik} detik.",
+            ])->onlyInput('email');
+        }
+
         if (Auth::attempt($credentials)) {
+            RateLimiter::clear($kunci);
             $request->session()->regenerate();
             $user = Auth::user();
 
@@ -33,6 +54,8 @@ class AuthController extends Controller
                 default => redirect()->intended(route('pasien.dashboard')),
             };
         }
+
+        RateLimiter::hit($kunci, self::LOGIN_JEDA_DETIK);
 
         return back()->withErrors([
             'email' => 'Email atau password salah.',
@@ -46,6 +69,18 @@ class AuthController extends Controller
 
     public function register(Request $request): RedirectResponse
     {
+        $kunci = 'register|' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($kunci, self::REGISTER_MAKS_PERCOBAAN)) {
+            $detik = RateLimiter::availableIn($kunci);
+
+            return back()->withErrors([
+                'email' => "Terlalu banyak percobaan pendaftaran. Coba lagi dalam {$detik} detik.",
+            ])->withInput($request->except('password'));
+        }
+
+        RateLimiter::hit($kunci, self::REGISTER_JEDA_DETIK);
+
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'alamat' => ['required', 'string'],
@@ -87,5 +122,10 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function kunciLogin(Request $request): string
+    {
+        return Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
     }
 }

@@ -13,14 +13,6 @@
         </a>
     </div>
 
-    {{-- Alert Error --}}
-    @if(session('error'))
-    <div class="alert alert-error mb-4 rounded-xl shadow-sm">
-        <i class="fas fa-circle-xmark"></i>
-        <span>{{ session('error') }}</span>
-    </div>
-    @endif
-
     {{-- Card --}}
     <div class="card bg-base-100 shadow-md rounded-2 border">
         <div class="card-body p-0">

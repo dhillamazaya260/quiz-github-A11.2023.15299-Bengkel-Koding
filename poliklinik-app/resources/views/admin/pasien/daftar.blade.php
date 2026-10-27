@@ -311,7 +311,7 @@
                                         style="background: linear-gradient(135deg,#1e2d6b,#2d4499);">
                                     <i class="fas fa-paper-plane mr-1"></i> Daftar Sekarang
                                 </button>
-                                <button type="button" id="btnBatal" class="btn btn-ghost w-full">Batal</button>
+                                <button type="button" id="btnBatal" class="btn btn-error text-white w-full">Batal</button>
                             </div>
 
                             <p class="text-[11px] text-slate-400 text-center">
