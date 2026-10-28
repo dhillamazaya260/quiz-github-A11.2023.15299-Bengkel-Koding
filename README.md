@@ -15,7 +15,7 @@ Dibuat untuk kuis Bengkel Koding oleh Dhilla Mazaya Nasucha (A11.2023.15299), Un
 
 Laravel 10, PHP 8.1+, MySQL, Blade, Tailwind CSS 4, DaisyUI, Vite, Laravel Reverb, maatwebsite/excel
 
-## Kebutuhan
+## Spesifikasi
 
 - PHP 8.1+ (ekstensi `gd`, `zip`, `xml`, `mbstring`, `pdo_mysql` aktif)
 - Composer 2
@@ -114,15 +114,7 @@ Catatan:
 | Dokter | dokter@gmail.com | dokter |
 | Pasien | pasien@gmail.com | pasien |
 
-Akun ini hanya untuk demo. Jangan dipakai di server sungguhan.
-
-## Masalah Umum
-
-- **Halaman tanpa gaya atau `Vite manifest not found`:** jalankan `npm run build`.
-- **Export Excel gagal:** aktifkan ekstensi PHP `zip`, `gd`, dan `xml`.
-- **Pasien tidak bisa memilih jadwal:** jalankan `JadwalSeeder` atau buat jadwal dari akun dokter.
-- **Antrian tidak berubah otomatis:** pastikan `php artisan reverb:start` berjalan.
-- **Port 8000 sudah dipakai:** jalankan `php artisan serve --port=8001`.
+Note: Akun ini hanya untuk demo.
 
 ## Lisensi
 
